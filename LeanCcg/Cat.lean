@@ -1,7 +1,10 @@
+/- # 範疇 Cat の定義 -/
+
+/-- 前方適用 '/' 後方適用 '\' -/
 inductive Dir
   | Fwd -- /
   | Bwd -- \
-  deriving BEq,
+  deriving BEq
 
 def Dir.toString : Dir → String
   | .Fwd => "/"
@@ -10,7 +13,8 @@ def Dir.toString : Dir → String
 instance : ToString Dir where
   toString := Dir.toString
 
-inductive Cat
+/-- 範疇 Cat -/
+inductive Cat : Type
   | S   : Cat
   | NP  : Cat
   | N   : Cat
