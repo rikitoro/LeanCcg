@@ -1,7 +1,10 @@
-abbrev Token := String
+def String.replicateStr (str : String) (n : Nat) : String :=
+  String.join <| List.replicate n str
 
-def String.replicate (str : String) : Nat → String
-  | 0 => ""
-  | n + 1 => str ++ replicate str n
+#eval "| ".replicateStr 3
+#eval "| ".replicateStr 0
 
-#eval "| ".replicate 3
+def String.toTokens (str : String) : List String :=
+  str.splitOn.filter (· ≠ "")
+
+#eval "John  likes a dog ".toTokens

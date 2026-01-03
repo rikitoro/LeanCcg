@@ -13,22 +13,8 @@ def bapp : Cat → Cat → Option Cat
   | y', .Fun .Bwd x y => if y == y' then some x else none
   | _, _ => none
 
-/- Forward functional composition
-  [>B] x/y y/z ⟹ x/z -/
--- def fcomp : Cat → Cat → Option Cat
---   | .Fun .Fwd x y, .Fun .Fwd y' z =>
---     if y == y' then some (x /> z) else none
---   | _, _ => none
-
-/- Backward functional composition
-  [<B] y\z x\y ⟹ x\z -/
--- def bcomp : Cat → Cat → Option Cat
---   | .Fun .Bwd y' z, .Fun .Bwd x y =>
---     if y == y' then some (x \> z) else none
---   | _, _ => none
-
 /-- Generalized forward functional composition
-  [>Bn] x/y y/$/w ⟹ x/$/w -/
+  [>B] x/y y/$/w ⟹ x/$/w -/
 def fcompGen : Cat → Cat → Option Cat
   | .Fun .Fwd x y, .Fun .Fwd y' z =>
     if y == y' then
@@ -40,7 +26,7 @@ def fcompGen : Cat → Cat → Option Cat
   | _, _ => none
 
 /-- Generalized backward functional composition
-  [<Bn] y\$\z x\y ⟹ x\$\z -/
+  [<B] y\$\z x\y ⟹ x\$\z -/
 def bcompGen : Cat → Cat → Option Cat
   | .Fun .Bwd y' z, .Fun .Bwd x y =>
     if y == y' then
@@ -52,25 +38,31 @@ def bcompGen : Cat → Cat → Option Cat
   | _, _ => none
 
 #eval fapp (.S /> .NP) .NP -- some S
---#eval fcomp (.S /> .NP) (.NP /> .NP) -- some S/NP
 #eval bapp .NP (.S \> .NP) -- some S
 #eval bcompGen (.NP \> .NP) (.S \> .NP) -- some S\NP
 #eval fcompGen (.S /> .NP) (.NP /> .NP) -- some S/NP
 #eval bcompGen (.S \> .NP \> .NP) (.S \> .S) --some S\NP\NP
 
 
-def tryRules (lt rt : Tree) : List Tree :=
+def tryRules (l r : Cat) : List (Rule × Cat) :=
   let rules : List (Rule × Option Cat) := [
-    (.Fa,  fapp lt.cat rt.cat),
-    (.Ba,  bapp lt.cat rt.cat),
-    (.Fcg, fcompGen lt.cat rt.cat),
-    (.Bcg, bcompGen lt.cat rt.cat)
+    (.Fa,  fapp l r),
+    (.Ba,  bapp l r),
+    (.Fcg, fcompGen l r),
+    (.Bcg, bcompGen l r)
   ]
   rules.filterMap <|
-    fun (rule, res) ↦ res.map <| fun c ↦ .branch rule c lt rt
+    fun (rule, res) ↦ res.map <| fun c ↦ (rule, c)
 
-#eval tryRules
+def combineTree (lt rt : Tree) : List Tree :=
+  let applied := tryRules lt.cat rt.cat
+  applied.map <| fun (rule, cat) ↦ .branch rule cat lt rt
+
+#eval combineTree
   (Tree.branch .Ba .NP
     (.leaf "the" (.NP /> .N))
     (.leaf "dog" .N))
   (.leaf "Sleeps" (.S \> .NP))
+#eval combineTree
+  (.leaf "might" (.S \> .NP /> (.S \> .NP)))
+  (.leaf "eat" (.S \> .NP /> .NP))

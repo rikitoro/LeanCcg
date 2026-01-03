@@ -6,18 +6,14 @@ import LeanCcg.Cat
 inductive Rule : Type
   | Fa -- forward app [>]
   | Ba -- backward app [<]
---  | Fc -- compose Fwd > B
---  | Fc -- compose Bwd < B
-  | Fcg -- forward comp gen [>Bn]
-  | Bcg -- backward comp gen [<Bn]
+  | Fcg -- forward comp gen [>B]
+  | Bcg -- backward comp gen [<B]
 
 def Rule.toString : Rule → String
   | .Fa => ">"
   | .Ba => "<"
-  -- | .Fc => ">B"
-  -- | .Fc => "< B"
-  | .Fcg => ">Bn"
-  | .Bcg => "<Bn"
+  | .Fcg => ">B"
+  | .Bcg => "<B"
 
 instance : ToString Rule where
   toString := Rule.toString
@@ -26,8 +22,9 @@ instance : ToString Rule where
 /- ## 導出木 Tree の定義 -/
 
 inductive Tree : Type
-  | leaf (tok : Token) (c : Cat)
+  | leaf (tok : String) (c : Cat)
   | branch (r : Rule) (c : Cat) (lt rt : Tree)
+
 
 private def Tree.toStringAux (n : Nat) : Tree → String
   | .leaf t c =>
@@ -39,7 +36,7 @@ private def Tree.toStringAux (n : Nat) : Tree → String
     toStringAux (n + 1) lt ++ "\n" ++
     toStringAux (n + 1) rt
   where
-    pre n := "| ".replicate n
+    pre n := "| ".replicateStr n
 
 def Tree.toString (t : Tree) : String :=
   "\n" ++ t.toStringAux 0
@@ -56,8 +53,6 @@ instance : ToString Tree where
       (.leaf "the" (.NP /> .N))
       (.leaf "dog" .N))
     (.leaf "Sleeps" (.S \> .NP))
-
-
 
 def Tree.cat : Tree → Cat
   | .leaf _ c => c
