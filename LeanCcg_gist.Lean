@@ -199,12 +199,19 @@ def fillChart (toks : List Token) (lexicon : Token → List Cat) : Chart := Id.r
 
 def lexicon : Token → List Cat
   | "Keats"   => [.NP]
+  | "Sid"     => [.NP]
   | "eats"    => [.S \> .NP /> .NP]
   | "cooks"   => [.S \> .NP /> .NP]
   | "an"      => [.NP /> .N]
   | "apple"   => [.N]
   | "apples"  => [.NP]
+  | "eat"     => [.S \> .NP /> .NP]
   | "might"   => [(.S \> .NP) /> (.S \> .NP)]
+  | "I"       => [.NP, .S /> (.S \> .NP)] -- type rising を手で入れた
+  | "give"    => [.S \> .NP /> .NP /> .NP]
+  | "them"    => [.NP]
+  | "money"   => [.NP, .N]
+  | "that"    => [.N \> .N /> (.S /> .NP)]
   | _         => []
 
 /- ## parser の定義 -/
@@ -215,6 +222,8 @@ def parseCCG (toks : List Token) (lexicon : Token → List Cat) : List Tree :=
 
 def parse (sentence : String) (lexicon : Token → List Cat := lexicon): List Tree :=
   parseCCG sentence.toTokens lexicon
+
+-- ## #eval で parse を評価して試せます
 
 #eval parse "Keats eats apples"
 -- [
@@ -240,3 +249,9 @@ def parse (sentence : String) (lexicon : Token → List Cat := lexicon): List Tr
 -- | | | (S\NP)/NP 'eats'
 -- | | | NP/N 'an'
 -- | | N 'apple']
+
+-- Examples from Hockenmaier, J. and M. J. Steedman. (2025) "CCGbank", Computational Linguistics, Vol. 33, Num. 3, pp.355-396
+
+#eval parse "I give them money"
+
+#eval parse "money that I give them"
