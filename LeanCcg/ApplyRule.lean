@@ -1,6 +1,8 @@
 import LeanCcg.Cat
 import LeanCcg.Tree
 
+/- ## 組合せ規則の適用 -/
+
 /-- Forward functional application
   [>] x/y y ⟹ x -/
 def fapp : Cat → Cat → Option Cat

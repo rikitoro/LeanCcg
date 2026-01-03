@@ -1,0 +1,242 @@
+/- ## Utilities -/
+abbrev Token := String
+
+def String.replicateStr (str : String) (n : Nat) : String :=
+  String.join <| List.replicate n str
+
+def String.toTokens (str : String) : List Token :=
+  str.splitOn.filter (· ≠ "")
+
+/- ## 範疇 Cat の定義 -/
+
+/-- 前方適用 '/' 後方適用 '\' -/
+inductive Dir
+  | Fwd -- /
+  | Bwd -- \
+  deriving BEq
+
+def Dir.toString : Dir → String
+  | .Fwd => "/"
+  | .Bwd => "\\"
+
+instance : ToString Dir where
+  toString := Dir.toString
+
+/-- 範疇 Cat -/
+inductive Cat : Type
+  | S   : Cat
+  | NP  : Cat
+  | N   : Cat
+  | Fun : Dir → Cat → Cat → Cat -- x / y or x \ y
+  deriving BEq
+
+infixl:70 " /> "   => Cat.Fun Dir.Fwd
+infixl:70 " \\> "  => Cat.Fun Dir.Bwd
+
+def Cat.toString : Cat → String
+  | .S  => "S"
+  | .NP => "NP"
+  | .N  => "N"
+  | .Fun d x y =>
+    match x, y with
+    | .Fun .., .Fun .. => "(" ++ x.toString ++ ")" ++ d.toString ++ "(" ++ y.toString ++ ")"
+    | .Fun .., _       => "(" ++ x.toString ++ ")" ++ d.toString ++ y.toString
+    | _      , .Fun .. => x.toString ++ d.toString ++ "(" ++ y.toString ++ ")"
+    | _      , _       => x.toString ++ d.toString ++ y.toString
+
+instance : ToString Cat where
+  toString := Cat.toString
+
+/- ## 組合せ規則の定義 -/
+
+inductive Rule : Type
+  | Fa -- forward app [>]
+  | Ba -- backward app [<]
+  | Fcg -- forward comp gen [>B]
+  | Bcg -- backward comp gen [<B]
+
+def Rule.toString : Rule → String
+  | .Fa => ">"
+  | .Ba => "<"
+  | .Fcg => ">B"
+  | .Bcg => "<B"
+
+instance : ToString Rule where
+  toString := Rule.toString
+
+
+/- ## 導出木 Tree の定義 -/
+
+inductive Tree : Type
+  | leaf (tok : Token) (c : Cat)
+  | branch (r : Rule) (c : Cat) (lt rt : Tree)
+
+private def Tree.toStringAux (n : Nat) : Tree → String
+  | .leaf t c =>
+    pre n ++
+    c.toString ++ " '" ++ t ++ "'"
+  | .branch r c lt rt =>
+    pre n ++
+    c.toString ++ " [" ++ r.toString ++ "]\n" ++
+    toStringAux (n + 1) lt ++ "\n" ++
+    toStringAux (n + 1) rt
+  where
+    pre n := "| ".replicateStr n
+
+def Tree.toString (t : Tree) : String :=
+  "\n" ++ t.toStringAux 0
+
+instance : ToString Tree where
+  toString := Tree.toString
+
+def Tree.cat : Tree → Cat
+  | .leaf _ c => c
+  | .branch _ c _ _ => c
+
+/- ## 組合せ規則の適用 -/
+
+/-- Forward functional application
+  [>] x/y y ⟹ x -/
+def fapp : Cat → Cat → Option Cat
+  | .Fun .Fwd x y, y' => if y == y' then some x else none
+  | _, _  => none
+
+/-- Backward functional application
+  [<] y x\y ⟹ x -/
+def bapp : Cat → Cat → Option Cat
+  | y', .Fun .Bwd x y => if y == y' then some x else none
+  | _, _ => none
+
+/-- Generalized forward functional composition
+  [>B] x/y y/$/w ⟹ x/$/w -/
+def fcompGen : Cat → Cat → Option Cat
+  | .Fun .Fwd x y, .Fun .Fwd y' z =>
+    if y == y' then
+      some (x /> z)
+    else
+      match fcompGen (x /> y) y' with
+      | some x' => some (x' /> z)
+      | none => none
+  | _, _ => none
+
+/-- Generalized backward functional composition
+  [<B] y\$\z x\y ⟹ x\$\z -/
+def bcompGen : Cat → Cat → Option Cat
+  | .Fun .Bwd y' z, .Fun .Bwd x y =>
+    if y == y' then
+      some (x \> z)
+    else
+      match bcompGen y' (x \> y) with
+      | some x' => some (x' \> z)
+      | none => none
+  | _, _ => none
+
+#eval fapp (.S /> .NP) .NP -- some S
+#eval bapp .NP (.S \> .NP) -- some S
+#eval bcompGen (.NP \> .NP) (.S \> .NP) -- some S\NP
+#eval fcompGen (.S /> .NP) (.NP /> .NP) -- some S/NP
+#eval bcompGen (.S \> .NP \> .NP) (.S \> .S) --some S\NP\NP
+
+def tryRules (l r : Cat) : List (Rule × Cat) :=
+  let rules : List (Rule × Option Cat) := [
+    (.Fa,  fapp l r),
+    (.Ba,  bapp l r),
+    (.Fcg, fcompGen l r),
+    (.Bcg, bcompGen l r)
+  ]
+  rules.filterMap <|
+    fun (rule, res) ↦ res.map <| fun c ↦ (rule, c)
+
+def combineTree (lt rt : Tree) : List Tree :=
+  let applied := tryRules lt.cat rt.cat
+  applied.map <| fun (rule, cat) ↦ .branch rule cat lt rt
+
+
+/- ## CYKアルゴリズムによるチャートパーシング -/
+
+/- ### 各セルの定義 -/
+structure Cell where
+  span  : Nat
+  index : Nat
+  trees : List Tree
+
+def Cell.toString : Cell → String
+  | ⟨span, index, trees⟩ => s!"⟨{span}, {index}, {trees}⟩"
+
+instance : ToString Cell where
+  toString := Cell.toString
+
+abbrev Chart := List Cell
+
+def Chart.lookup (chart : Chart) (span index : Nat) : List Tree :=
+  let cell : Option Cell := chart.find? <| fun ⟨s', i', _⟩ ↦ s' == span && i' = index
+  match cell with
+  | some ⟨_, _, ts⟩ => ts
+  | none => []
+
+/-- ### CYK パーシング -/
+def fillChart (toks : List Token) (lexicon : Token → List Cat) : Chart := Id.run do
+  let len := toks.length
+  -- リーフノードを作成 (span = 1)
+  let mut chart : Chart :=
+    toks.zipIdx.map <| fun (t, i) ↦
+      let leafs : List Tree := (lexicon t).map <| fun c ↦ .leaf t c
+      ⟨1, i, leafs⟩
+  -- ボトムアップに導出木を結合　(span ≥ 2)
+  for span in 2...(len + 1) do
+    for i in 0...(len - span + 1) do
+      let mut trees : List Tree := []
+      for k in 1...span do
+        let lts := chart.lookup k i
+        let rts := chart.lookup (span - k) (i + k)
+        trees := trees ++
+          lts.flatMap fun lt ↦ rts.flatMap fun rt ↦ combineTree lt rt
+      chart := chart.concat ⟨span, i, trees⟩
+  return chart
+
+
+/- ## 語彙辞書 lexicon の定義 -/
+
+def lexicon : Token → List Cat
+  | "Keats"   => [.NP]
+  | "eats"    => [.S \> .NP /> .NP]
+  | "cooks"   => [.S \> .NP /> .NP]
+  | "an"      => [.NP /> .N]
+  | "apple"   => [.N]
+  | "apples"  => [.NP]
+  | "might"   => [(.S \> .NP) /> (.S \> .NP)]
+  | _         => []
+
+/- ## parser の定義 -/
+def parseCCG (toks : List Token) (lexicon : Token → List Cat) : List Tree :=
+  let chart := fillChart toks lexicon
+  let len := toks.length
+  chart.lookup len 0
+
+def parse (sentence : String) (lexicon : Token → List Cat := lexicon): List Tree :=
+  parseCCG sentence.toTokens lexicon
+
+#eval parse "Keats eats apples"
+-- [
+-- S [<]
+-- | NP 'Keats'
+-- | S\NP [>]
+-- | | (S\NP)/NP 'eats'
+-- | | NP 'apples']
+
+#eval parse "Keats eats an apple"
+-- [
+-- S [<]
+-- | NP 'Keats'
+-- | S\NP [>]
+-- | | (S\NP)/NP 'eats'
+-- | | NP [>]
+-- | | | NP/N 'an'
+-- | | | N 'apple',
+-- S [<]
+-- | NP 'Keats'
+-- | S\NP [>]
+-- | | (S\NP)/N [>B]
+-- | | | (S\NP)/NP 'eats'
+-- | | | NP/N 'an'
+-- | | N 'apple']

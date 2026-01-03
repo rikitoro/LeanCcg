@@ -1,6 +1,8 @@
 import LeanCcg.ApplyRule
-import LeanCcg.Lexicon
 
+/- ## CYKアルゴリズムによるチャートパーシング -/
+
+/- ### 各セルの定義 -/
 structure Cell where
   span  : Nat
   index : Nat
@@ -20,14 +22,15 @@ def Chart.lookup (chart : Chart) (span index : Nat) : List Tree :=
   | some ⟨_, _, ts⟩ => ts
   | none => []
 
-def fillChart (toks : List String) : Chart := Id.run do
+/-- ### CYK パーシング -/
+def fillChart (toks : List Token) (lexicon : Token → List Cat) : Chart := Id.run do
   let len := toks.length
   -- リーフノードを作成 (span = 1)
   let mut chart : Chart :=
     toks.zipIdx.map <| fun (t, i) ↦
       let leafs : List Tree := (lexicon t).map <| fun c ↦ .leaf t c
       ⟨1, i, leafs⟩
-  -- ボトムアップに導出木を結合
+  -- ボトムアップに導出木を結合　(span ≥ 2)
   for span in 2...(len + 1) do
     for i in 0...(len - span + 1) do
       let mut trees : List Tree := []
@@ -39,6 +42,6 @@ def fillChart (toks : List String) : Chart := Id.run do
       chart := chart.concat ⟨span, i, trees⟩
   return chart
 
-#eval fillChart ["Keats"]
-#eval fillChart ["Keats", "eats"]
-#eval fillChart ["Keats", "eats", "an"]
+-- #eval fillChart ["Keats"]
+-- #eval fillChart ["Keats", "eats"]
+-- #eval fillChart ["Keats", "eats", "an"]

@@ -22,7 +22,7 @@ instance : ToString Rule where
 /- ## 導出木 Tree の定義 -/
 
 inductive Tree : Type
-  | leaf (tok : String) (c : Cat)
+  | leaf (tok : Token) (c : Cat)
   | branch (r : Rule) (c : Cat) (lt rt : Tree)
 
 

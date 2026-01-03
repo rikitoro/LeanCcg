@@ -1,7 +1,7 @@
 import LeanCcg.Util
 import LeanCcg.Cat
 
-def lexicon : String → List Cat
+def lexicon : Token → List Cat
   | "Keats"   => [.NP]
   | "eats"    => [.S \> .NP /> .NP]
   | "cooks"   => [.S \> .NP /> .NP]
