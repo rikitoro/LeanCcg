@@ -7,12 +7,15 @@ def parseCCG (toks : List Token) (lexicon : Token → List Cat) : List Tree :=
   chart.lookup len 0
 
 
+#eval parseCCG ["Keats"] lexicon
 #eval parseCCG ["Keats", "eats", "an", "apple"] lexicon
 
 def parse (sentence : String) (lexicon : Token → List Cat := lexicon): List Tree :=
   let toks : List Token := sentence.toTokens
   parseCCG toks lexicon
 
+#eval parse "Keats"
 #eval parse "Keats eats an apple"
 
-#eval parse "wrote"
+#eval parse (lexicon := lexicon2) "that that that that that boy wrote is wrong"
+#eval parse (lexicon := lexicon2) "I think that that that that that boy wrote is wrong"

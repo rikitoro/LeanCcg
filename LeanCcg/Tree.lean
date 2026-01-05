@@ -4,16 +4,20 @@ import LeanCcg.Cat
 /- ## 適用ルール -/
 
 inductive Rule : Type
-  | Fa -- forward app [>]
-  | Ba -- backward app [<]
-  | Fcg -- forward comp gen [>B]
-  | Bcg -- backward comp gen [<B]
+  | Fa  -- forward app [>]
+  | Ba  -- backward app [<]
+  | Fc  -- forward comp gen [>B]
+  | Bc  -- backward comp gen [<B]
+  | Ft  -- forward type raising [>T]
+  | Bt  -- backward type raising [<T]
 
 def Rule.toString : Rule → String
-  | .Fa => ">"
-  | .Ba => "<"
-  | .Fcg => ">B"
-  | .Bcg => "<B"
+  | .Fa => "[>]"
+  | .Ba => "[<]"
+  | .Fc => "[>B]"
+  | .Bc => "[<B]"
+  | .Ft => "[>T]"
+  | .Bt => "[<T]"
 
 instance : ToString Rule where
   toString := Rule.toString
@@ -24,6 +28,7 @@ instance : ToString Rule where
 inductive Tree : Type
   | leaf (tok : Token) (c : Cat)
   | branch (r : Rule) (c : Cat) (lt rt : Tree)
+  | unary (r : Rule) (c : Cat) (t : Tree) -- type raing 用
 
 
 private def Tree.toStringAux (n : Nat) : Tree → String
@@ -31,10 +36,13 @@ private def Tree.toStringAux (n : Nat) : Tree → String
     pre n ++
     c.toString ++ " '" ++ t ++ "'"
   | .branch r c lt rt =>
-    pre n ++
-    c.toString ++ " [" ++ r.toString ++ "]\n" ++
+    pre n ++ s!"{c} {r}\n" ++
+    -- c.toString ++ " [" ++ r.toString ++ "]\n" ++
     toStringAux (n + 1) lt ++ "\n" ++
     toStringAux (n + 1) rt
+  | .unary r c t =>
+    pre n ++ s!"{c} {r}\n" ++
+    toStringAux (n + 1) t
   where
     pre n := "| ".replicateStr n
 
@@ -53,7 +61,11 @@ instance : ToString Tree where
       (.leaf "the" (.NP /> .N))
       (.leaf "dog" .N))
     (.leaf "Sleeps" (.S \> .NP))
+#eval
+  Tree.unary .Bt (.S \> (.S /> .NP))
+    (.leaf "Keats" .NP)
 
 def Tree.cat : Tree → Cat
   | .leaf _ c => c
   | .branch _ c _ _ => c
+  | .unary _ c _ => c

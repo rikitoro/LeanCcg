@@ -131,13 +131,25 @@ def bcompGen : Cat → Cat → Option Cat
       | none => none
   | _, _ => none
 
-#eval fapp (.S /> .NP) .NP -- some S
-#eval bapp .NP (.S \> .NP) -- some S
-#eval bcompGen (.NP \> .NP) (.S \> .NP) -- some S\NP
-#eval fcompGen (.S /> .NP) (.NP /> .NP) -- some S/NP
-#eval bcompGen (.S \> .NP \> .NP) (.S \> .S) --some S\NP\NP
+/-- Forward Type rising
+  [>T] x ⟹ t/(t\x) : 今回は x = NP, t = S に限定する -/
+def ftrise : Cat → Option Cat
+  | .NP => some (.S /> (.S \> .NP))
+  | _ => none
 
-def tryRules (l r : Cat) : List (Rule × Cat) :=
+/-- Backward Type rising
+  [<T] x ⟹ t\ (t/x) : 今回は x = NP, t = S に限定する -/
+def btrise : Cat → Option Cat
+  | .NP => some (.S \> (.S /> .NP))
+  | _ => none
+
+#eval ftrise .NP
+#eval ftrise .N
+#eval btrise .NP
+
+/- ### 組合せ規則の適用 -/
+
+def tryBinaryRules (l r : Cat) : List (Rule × Cat) :=
   let rules : List (Rule × Option Cat) := [
     (.Fa,  fapp l r),
     (.Ba,  bapp l r),
@@ -145,11 +157,12 @@ def tryRules (l r : Cat) : List (Rule × Cat) :=
     (.Bcg, bcompGen l r)
   ]
   rules.filterMap <|
-    fun (rule, res) ↦ res.map <| fun c ↦ (rule, c)
+    fun (rule, res) ↦ res.map fun c ↦ (rule, c)
 
 def combineTree (lt rt : Tree) : List Tree :=
-  let applied := tryRules lt.cat rt.cat
-  applied.map <| fun (rule, cat) ↦ .branch rule cat lt rt
+  let applied := tryBinaryRules lt.cat rt.cat
+  applied.map fun (rule, cat) ↦ .branch rule cat lt rt
+
 
 
 /- ## CYKアルゴリズムによるチャートパーシング -/

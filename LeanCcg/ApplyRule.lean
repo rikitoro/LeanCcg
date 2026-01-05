@@ -46,19 +46,19 @@ def bcompGen : Cat → Cat → Option Cat
 #eval bcompGen (.S \> .NP \> .NP) (.S \> .S) --some S\NP\NP
 
 
-def tryRules (l r : Cat) : List (Rule × Cat) :=
+def tryBinaryRules (lc rc : Cat) : List (Rule × Cat) :=
   let rules : List (Rule × Option Cat) := [
-    (.Fa,  fapp l r),
-    (.Ba,  bapp l r),
-    (.Fcg, fcompGen l r),
-    (.Bcg, bcompGen l r)
+    (.Fa, fapp lc rc),
+    (.Ba, bapp lc rc),
+    (.Fc, fcompGen lc rc),
+    (.Bc, bcompGen lc rc)
   ]
-  rules.filterMap <|
-    fun (rule, res) ↦ res.map <| fun c ↦ (rule, c)
+  rules.filterMap fun (rule, res) ↦
+    res.map fun c ↦ (rule, c)
 
 def combineTree (lt rt : Tree) : List Tree :=
-  let applied := tryRules lt.cat rt.cat
-  applied.map <| fun (rule, cat) ↦ .branch rule cat lt rt
+  let applied := tryBinaryRules lt.cat rt.cat
+  applied.map fun (r, c) ↦ .branch r c lt rt
 
 #eval combineTree
   (Tree.branch .Ba .NP
@@ -68,3 +68,33 @@ def combineTree (lt rt : Tree) : List Tree :=
 #eval combineTree
   (.leaf "might" (.S \> .NP /> (.S \> .NP)))
   (.leaf "eat" (.S \> .NP /> .NP))
+
+/- ## Type raising -/
+
+/-- Forward Type rising
+  [>T] x ⟹ t/(t\x) : 今回は x = NP, t = S に限定する -/
+def ftraise : Cat → Option Cat
+  | .NP => some (.S /> (.S \> .NP))
+  | _ => none
+
+/-- Backward Type rising
+  [<T] x ⟹ t\ (t/x) : 今回は x = NP, t = S に限定する -/
+def btraise : Cat → Option Cat
+  | .NP => some (.S \> (.S /> .NP))
+  | _ => none
+
+#eval ftraise .NP
+#eval ftraise .N
+#eval btraise .NP
+
+def tryUnaryRules (c : Cat) : List (Rule × Cat) :=
+  let rules : List (Rule × Option Cat) := [
+    (.Ft, ftraise c),
+    (.Bt, btraise c)
+  ]
+  rules.filterMap fun (rule, res) ↦
+    res.map fun c ↦ (rule, c)
+
+def raiseTree (t : Tree) : List Tree :=
+  let applied := tryUnaryRules t.cat
+  applied.map fun (r, c) ↦ .unary r c t

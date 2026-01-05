@@ -9,11 +9,14 @@ def lexicon : Token → List Cat
   | "apple"   => [.N]
   | "apples"  => [.NP]
   | "might"   => [(.S \> .NP) /> (.S \> .NP)]
-  | "I"       => [.NP, .S /> (.S \> .NP)]
-  | "think"   => [.S \> .NP /> .S]
+  | _         => []
+
+def lexicon2 : Token → List Cat
+  | "I"       => [.NP]
+  | "think"   => [.S \> .NP /> .S,]
   | "that"    => [.S /> .S, .NP /> .N, .N, .N \> .N /> (.S /> .NP)]
   | "boy"     => [.N]
   | "wrote"   => [.S \> .NP /> .NP]
   | "is"      => [.S \> .NP /> (.S \> .NP)]
-  | "wrong"   => [.S \> .NP /> (.S \> .NP)]
-  | _         => []
+  | "wrong"   => [.S \> .NP]
+  | _ => []
