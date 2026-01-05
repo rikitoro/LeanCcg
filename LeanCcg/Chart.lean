@@ -17,7 +17,8 @@ instance : ToString Cell where
 abbrev Chart := List Cell
 
 def Chart.lookup (chart : Chart) (span index : Nat) : List Tree :=
-  let cell : Option Cell := chart.find? <| fun ⟨s', i', _⟩ ↦ s' == span && i' = index
+  let cell : Option Cell :=
+    chart.find? fun ⟨s', i', _⟩ ↦ s' == span && i' = index
   match cell with
   | some ⟨_, _, ts⟩ => ts
   | none => []
@@ -27,8 +28,8 @@ def fillChart (toks : List Token) (lexicon : Token → List Cat) : Chart := Id.r
   let len := toks.length
   -- リーフノードを作成 (span = 1)
   let mut chart : Chart :=
-    toks.zipIdx.map <| fun (t, i) ↦
-      let leafs : List Tree := (lexicon t).map <| fun c ↦ .leaf t c
+    toks.zipIdx.map fun (t, i) ↦
+      let leafs : List Tree := (lexicon t).map fun c ↦ .leaf t c
       ⟨1, i, leafs⟩
   -- ボトムアップに導出木を結合　(span ≥ 2)
   for span in 2...(len + 1) do
@@ -40,8 +41,4 @@ def fillChart (toks : List Token) (lexicon : Token → List Cat) : Chart := Id.r
         trees := trees ++
           lts.flatMap fun lt ↦ rts.flatMap fun rt ↦ combineTree lt rt
       chart := chart.concat ⟨span, i, trees⟩
-  return chart
-
--- #eval fillChart ["Keats"]
--- #eval fillChart ["Keats", "eats"]
--- #eval fillChart ["Keats", "eats", "an"]
+  chart

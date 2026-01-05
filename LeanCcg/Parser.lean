@@ -14,3 +14,5 @@ def parse (sentence : String) (lexicon : Token → List Cat := lexicon): List Tr
   parseCCG toks lexicon
 
 #eval parse "Keats eats an apple"
+
+#eval parse "wrote"
