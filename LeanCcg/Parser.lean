@@ -1,21 +1,20 @@
 import LeanCcg.Chart
 import LeanCcg.Lexicon
 
-def parseCCG (toks : List Token) (lexicon : Token → List Cat) : List Tree :=
+def parseCCG  (lexicon : Token → List Cat) (toks : List Token) : List Tree :=
   let chart := fillChart toks lexicon
   let len := toks.length
   chart.lookup len 0
 
 
-#eval parseCCG ["Keats"] lexicon
-#eval parseCCG ["Keats", "eats", "an", "apple"] lexicon
+#eval parseCCG lexicon1 ["Keats"]
+#eval parseCCG lexicon1 ["Keats", "eats", "an", "apple"]
 
-def parse (sentence : String) (lexicon : Token → List Cat := lexicon): List Tree :=
+def parse  (lexicon : Token → List Cat) (sentence : String): List Tree :=
   let toks : List Token := sentence.toTokens
-  parseCCG toks lexicon
+  parseCCG lexicon toks
 
-#eval parse "Keats"
-#eval parse "Keats eats an apple"
+#eval parse lexicon1 "Keats"
+#eval parse lexicon1 "Keats eats an apple"
 
-#eval parse (lexicon := lexicon2) "that that that that that boy wrote is wrong"
-#eval parse (lexicon := lexicon2) "I think that that that that that boy wrote is wrong"
+#eval parse lexicon2 "I think that that that that that boy wrote is wrong"
