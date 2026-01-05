@@ -12,7 +12,7 @@ def lexicon : Token → List Cat
   | _         => []
 
 def lexicon2 : Token → List Cat
-  | "I"       => [.NP]
+  | "I"       => [.S /> (.S \> .NP)]
   | "think"   => [.S \> .NP /> .S,]
   | "that"    => [.S /> .S, .NP /> .N, .N, .N \> .N /> (.S /> .NP)]
   | "boy"     => [.N]
