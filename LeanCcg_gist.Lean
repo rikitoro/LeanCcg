@@ -79,10 +79,9 @@ inductive Tree : Type
 private def Tree.toStringAux (n : Nat) : Tree → String
   | .leaf t c =>
     pre n ++
-    c.toString ++ " '" ++ t ++ "'"
+    s!"{c} \"{t}\""
   | .branch r c lt rt =>
     pre n ++ s!"{c} {r}\n" ++
-    -- c.toString ++ " [" ++ r.toString ++ "]\n" ++
     toStringAux (n + 1) lt ++ "\n" ++
     toStringAux (n + 1) rt
   | .unary r c t =>
@@ -203,7 +202,7 @@ instance : ToString Cell where
 abbrev Chart := List Cell
 
 def Chart.lookup (chart : Chart) (span index : Nat) : List Tree :=
-  let cell : Option Cell := chart.find? <| fun ⟨s', i', _⟩ ↦ s' == span && i' = index
+  let cell : Option Cell := chart.find? fun ⟨s', i', _⟩ ↦ s' == span && i' = index
   match cell with
   | some ⟨_, _, ts⟩ => ts
   | none => []
@@ -213,7 +212,7 @@ def fillChart (toks : List Token) (lexicon : Token → List Cat) : Chart := Id.r
   let len := toks.length
   -- リーフノードを作成 (span = 1)
   let mut chart : Chart :=
-    toks.zipIdx.map <| fun (t, i) ↦
+    toks.zipIdx.map fun (t, i) ↦
       let leaves : List Tree := (lexicon t).map (.leaf t ·)
       let leaves' : List Tree := leaves.flatMap (raiseTree ·) -- Type raising したもの
       ⟨1, i, leaves ++ leaves'⟩
@@ -242,15 +241,7 @@ def lexicon1 : Token → List Cat
   | "apples"  => [.NP]
   | _         => []
 
-def lexicon2 : Token → List Cat
-  | "I"       => [.S /> (.S \> .NP)]
-  | "think"   => [.S \> .NP /> .S,]
-  | "that"    => [.S /> .S, .NP /> .N, .N, .N \> .N /> (.S /> .NP)]
-  | "boy"     => [.N]
-  | "wrote"   => [.S \> .NP /> .NP]
-  | "is"      => [.S \> .NP /> (.S \> .NP)]
-  | "wrong"   => [.S \> .NP]
-  | _ => []
+
 
 /- ## parser の定義 -/
 def parseCCG  (lexicon : Token → List Cat) (toks : List Token) : List Tree :=
@@ -267,30 +258,42 @@ def parse  (lexicon : Token → List Cat) (sentence : String): List Tree :=
 #eval parse lexicon1 "Keats eats apples"
 -- [
 -- S [<]
--- | NP 'Keats'
+-- | NP "Keats"
 -- | S\NP [>]
--- | | (S\NP)/NP 'eats'
--- | | NP 'apples',
+-- | | (S\NP)/NP "eats"
+-- | | NP "apples",
 -- S [>]
 -- | S/(S\NP) [>T]
--- | | NP 'Keats'
+-- | | NP "Keats"
 -- | S\NP [>]
--- | | (S\NP)/NP 'eats'
--- | | NP 'apples',
+-- | | (S\NP)/NP "eats"
+-- | | NP "apples",
 -- S [>]
 -- | S/NP [>B]
 -- | | S/(S\NP) [>T]
--- | | | NP 'Keats'
--- | | (S\NP)/NP 'eats'
--- | NP 'apples',
+-- | | | NP "Keats"
+-- | | (S\NP)/NP "eats"
+-- | NP "apples",
 -- S [<]
 -- | S/NP [>B]
 -- | | S/(S\NP) [>T]
--- | | | NP 'Keats'
--- | | (S\NP)/NP 'eats'
+-- | | | NP "Keats"
+-- | | (S\NP)/NP "eats"
 -- | S\(S/NP) [<T]
--- | | NP 'apples']
+-- | | NP "apples"]
 
 #eval parse lexicon1 "Keats eats an apple"
+
+-- おまけ
+
+def lexicon2 : Token → List Cat
+  | "I"       => [.NP]
+  | "think"   => [.S \> .NP /> .S,]
+  | "that"    => [.S /> .S, .NP /> .N, .N, .N \> .N /> (.S /> .NP)]
+  | "boy"     => [.N]
+  | "wrote"   => [.S \> .NP /> .NP]
+  | "is"      => [.S \> .NP /> (.S \> .NP)]
+  | "wrong"   => [.S \> .NP]
+  | _ => []
 
 #eval parse lexicon2 "I think that that that that that boy wrote is wrong"

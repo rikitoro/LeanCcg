@@ -34,7 +34,7 @@ inductive Tree : Type
 private def Tree.toStringAux (n : Nat) : Tree → String
   | .leaf t c =>
     pre n ++
-    c.toString ++ " '" ++ t ++ "'"
+    s!"{c} \"{t}\""
   | .branch r c lt rt =>
     pre n ++ s!"{c} {r}\n" ++
     -- c.toString ++ " [" ++ r.toString ++ "]\n" ++

@@ -28,7 +28,7 @@ def fillChart (toks : List Token) (lexicon : Token → List Cat) : Chart := Id.r
   let len := toks.length
   -- リーフノードを作成 (span = 1)
   let mut chart : Chart :=
-    toks.zipIdx.map <| fun (t, i) ↦
+    toks.zipIdx.map fun (t, i) ↦
       let leaves : List Tree := (lexicon t).map (.leaf t ·)
       let leaves' : List Tree := leaves.flatMap (raiseTree ·) -- Type raising したもの
       ⟨1, i, leaves ++ leaves'⟩
