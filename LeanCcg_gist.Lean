@@ -202,7 +202,7 @@ instance : ToString Cell where
 abbrev Chart := List Cell
 
 def Chart.lookup (chart : Chart) (span index : Nat) : List Tree :=
-  let cell : Option Cell := chart.find? fun ⟨s', i', _⟩ ↦ s' == span && i' = index
+  let cell : Option Cell := chart.find? fun ⟨s', i', _⟩ ↦ s' == span && i' == index
   match cell with
   | some ⟨_, _, ts⟩ => ts
   | none => []
@@ -216,7 +216,7 @@ def fillChart (toks : List Token) (lexicon : Token → List Cat) : Chart := Id.r
       let leaves : List Tree := (lexicon t).map (.leaf t ·)
       let leaves' : List Tree := leaves.flatMap (raiseTree ·) -- Type raising したもの
       ⟨1, i, leaves ++ leaves'⟩
-  -- ボトムアップに導出木を結合　(span ≥ 2)
+  -- ボトムアップに導出木を結合 (span ≥ 2)
   for span in 2...(len + 1) do
     for i in 0...(len - span + 1) do
       let mut trees : List Tree := []

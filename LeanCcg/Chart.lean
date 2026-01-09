@@ -18,7 +18,7 @@ abbrev Chart := List Cell
 
 def Chart.lookup (chart : Chart) (span index : Nat) : List Tree :=
   let cell : Option Cell :=
-    chart.find? fun ⟨s', i', _⟩ ↦ s' == span && i' = index
+    chart.find? fun ⟨s', i', _⟩ ↦ s' == span && i' == index
   match cell with
   | some ⟨_, _, ts⟩ => ts
   | none => []
