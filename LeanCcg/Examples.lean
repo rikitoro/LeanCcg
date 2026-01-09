@@ -1,5 +1,4 @@
-import LeanCcg.Util
-import LeanCcg.Cat
+import LeanCcg.Parsing
 
 def lexicon1 : Token → List Cat
   | "Keats"   => [.NP]
@@ -8,8 +7,10 @@ def lexicon1 : Token → List Cat
   | "an"      => [.NP /> .N]
   | "apple"   => [.N]
   | "apples"  => [.NP]
-  | "might"   => [(.S \> .NP) /> (.S \> .NP)]
   | _         => []
+
+#eval parse lexicon1 "Keats eats apples"
+#eval parse lexicon1 "Keats eats an apple"
 
 def lexicon2 : Token → List Cat
   | "I"       => [.S /> (.S \> .NP)]
@@ -20,3 +21,5 @@ def lexicon2 : Token → List Cat
   | "is"      => [.S \> .NP /> (.S \> .NP)]
   | "wrong"   => [.S \> .NP]
   | _ => []
+
+#eval parse lexicon2 "I think that that that that that boy wrote is wrong"

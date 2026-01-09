@@ -1,6 +1,5 @@
-/- # 範疇 Cat の定義 -/
+import LeanCcg.Util
 
-/-- 前方適用 '/' 後方適用 '\' -/
 inductive Dir
   | Fwd -- /
   | Bwd -- \
@@ -37,7 +36,3 @@ def Cat.toString : Cat → String
 
 instance : ToString Cat where
   toString := Cat.toString
-
-#eval .S /> .NP
-#eval .S /> .NP \> .N
-#eval .S \> (.NP /> .N)

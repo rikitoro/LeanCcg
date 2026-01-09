@@ -1,5 +1,6 @@
-import LeanCcg.Cat
-import LeanCcg.Tree
+import LeanCcg.Syntax
+import LeanCcg.Rule
+import LeanCcg.Derivation
 
 /- ## 組合せ規則の適用 -/
 
@@ -39,36 +40,6 @@ def bcompGen : Cat → Cat → Option Cat
       | none => none
   | _, _ => none
 
-#eval fapp (.S /> .NP) .NP -- some S
-#eval bapp .NP (.S \> .NP) -- some S
-#eval bcompGen (.NP \> .NP) (.S \> .NP) -- some S\NP
-#eval fcompGen (.S /> .NP) (.NP /> .NP) -- some S/NP
-#eval bcompGen (.S \> .NP \> .NP) (.S \> .S) --some S\NP\NP
-
-
-def tryBinaryRules (lc rc : Cat) : List (Rule × Cat) :=
-  let rules : List (Rule × Option Cat) := [
-    (.Fa, fapp lc rc),
-    (.Ba, bapp lc rc),
-    (.Fc, fcompGen lc rc),
-    (.Bc, bcompGen lc rc)
-  ]
-  rules.filterMap fun (rule, res) ↦
-    res.map fun c ↦ (rule, c)
-
-def combineTree (lt rt : Tree) : List Tree :=
-  let applied := tryBinaryRules lt.cat rt.cat
-  applied.map fun (r, c) ↦ .branch r c lt rt
-
-#eval combineTree
-  (Tree.branch .Ba .NP
-    (.leaf "the" (.NP /> .N))
-    (.leaf "dog" .N))
-  (.leaf "Sleeps" (.S \> .NP))
-#eval combineTree
-  (.leaf "might" (.S \> .NP /> (.S \> .NP)))
-  (.leaf "eat" (.S \> .NP /> .NP))
-
 /- ## Type raising -/
 
 /-- Forward Type rising
@@ -83,17 +54,37 @@ def btraise : Cat → Option Cat
   | .NP => some (.S \> (.S /> .NP))
   | _ => none
 
-#eval ftraise .NP
-#eval ftraise .N
-#eval btraise .NP
+
+
+def Rule.applyBinary : Rule → Cat → Cat → Option Cat
+  | .Fa, lc, rc => fapp lc rc
+  | .Ba, lc, rc => bapp lc rc
+  | .Fc, lc, rc => fcompGen lc rc
+  | .Bc, lc, rc => bcompGen lc rc
+  | _, _, _ => none
+
+def Rule.applyUnary : Rule → Cat → Option Cat
+  | .Ft, c => ftraise c
+  | .Bt, c => btraise c
+  | _, _ => none
+
+
+
+
+def tryBinaryRules (lc rc : Cat) : List (Rule × Cat) :=
+  let binaryRules : List Rule := [.Fa, .Ba, .Fc, .Bc]
+  binaryRules.filterMap fun r ↦
+    (r.applyBinary lc rc).map (r, ·)
 
 def tryUnaryRules (c : Cat) : List (Rule × Cat) :=
-  let rules : List (Rule × Option Cat) := [
-    (.Ft, ftraise c),
-    (.Bt, btraise c)
-  ]
-  rules.filterMap fun (rule, res) ↦
-    res.map fun c ↦ (rule, c)
+  let unaryRules  : List Rule := [.Ft, .Bt]
+  unaryRules.filterMap fun r ↦
+    (r.applyUnary c).map (r, ·)
+
+
+def combineTree (lt rt : Tree) : List Tree :=
+  let applied := tryBinaryRules lt.cat rt.cat
+  applied.map fun (r, c) ↦ .branch r c lt rt
 
 def raiseTree (t : Tree) : List Tree :=
   let applied := tryUnaryRules t.cat

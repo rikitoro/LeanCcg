@@ -1,4 +1,7 @@
-import LeanCcg.ApplyRule
+import LeanCcg.Util
+import LeanCcg.Syntax
+import LeanCcg.Derivation
+import LeanCcg.Rules
 
 /- ## CYKアルゴリズムによるチャートパーシング -/
 
@@ -45,6 +48,11 @@ def fillChart (toks : List Token) (lexicon : Token → List Cat) : Chart := Id.r
       chart := chart.concat ⟨span, i, trees ++ trees'⟩
   return chart
 
--- #eval fillChart ["Keats"]
--- #eval fillChart ["Keats", "eats"]
--- #eval fillChart ["Keats", "eats", "an"]
+def parseCCG  (lexicon : Token → List Cat) (toks : List Token) : List Tree :=
+  let chart := fillChart toks lexicon
+  let len := toks.length
+  chart.lookup len 0
+
+def parse  (lexicon : Token → List Cat) (sentence : String): List Tree :=
+  let toks : List Token := sentence.toTokens
+  parseCCG lexicon toks
