@@ -1,4 +1,4 @@
-/- ## Utilities -/
+/- # Utilities -/
 abbrev Token := String
 
 def String.replicateStr (str : String) (n : Nat) : String :=
@@ -7,20 +7,15 @@ def String.replicateStr (str : String) (n : Nat) : String :=
 def String.toTokens (str : String) : List Token :=
   str.splitOn.filter (· ≠ "")
 
+/- # 文法の定義 (Dir, Cat) -/
+
 /- ## 範疇 Cat の定義 -/
 
-/-- 前方適用 '/' 後方適用 '\' -/
+/-- 複合範疇の適用方向 -/
 inductive Dir
-  | Fwd -- /
-  | Bwd -- \
+  | Fwd -- / 前方適用
+  | Bwd -- \ 後方適用
   deriving BEq
-
-def Dir.toString : Dir → String
-  | .Fwd => "/"
-  | .Bwd => "\\"
-
-instance : ToString Dir where
-  toString := Dir.toString
 
 /-- 範疇 Cat -/
 inductive Cat : Type
@@ -30,8 +25,18 @@ inductive Cat : Type
   | Fun : Dir → Cat → Cat → Cat -- x / y or x \ y
   deriving BEq
 
-infixl:70 " /> "   => Cat.Fun Dir.Fwd
-infixl:70 " \\> "  => Cat.Fun Dir.Bwd
+/-- 適用方向の表記法 -/
+infixl:70 " /> "   => Cat.Fun Dir.Fwd -- x / y を x /> y で表記
+infixl:70 " \\> "  => Cat.Fun Dir.Bwd -- x / y を x \> y で表記
+
+---
+
+def Dir.toString : Dir → String
+  | .Fwd => "/"
+  | .Bwd => "\\"
+
+instance : ToString Dir where
+  toString := Dir.toString
 
 def Cat.toString : Cat → String
   | .S  => "S"
@@ -47,8 +52,8 @@ def Cat.toString : Cat → String
 instance : ToString Cat where
   toString := Cat.toString
 
-/- ## 組合せ規則の定義 -/
 
+/- # 適用規則 (Rule) -/
 
 inductive Rule : Type
   | Fa  -- forward app [>]
@@ -57,6 +62,14 @@ inductive Rule : Type
   | Bc  -- backward comp gen [<B]
   | Ft  -- forward type raising [>T]
   | Bt  -- backward type raising [<T]
+
+def binaryRules : List Rule :=
+  [.Fa, .Ba, .Fc, .Bc]
+
+def unaryRules : List Rule :=
+  [.Ft, .Bt]
+
+--
 
 def Rule.toString : Rule → String
   | .Fa => "[>]"
@@ -69,12 +82,16 @@ def Rule.toString : Rule → String
 instance : ToString Rule where
   toString := Rule.toString
 
-/- ## 導出木 Tree の定義 -/
 
+/- # 導出木の定義 (Tree) -/
+
+/-- 導出木 -/
 inductive Tree : Type
   | leaf (tok : Token) (c : Cat)
   | branch (r : Rule) (c : Cat) (lt rt : Tree)
-  | unary (r : Rule) (c : Cat) (t : Tree) -- type raing 用
+  | unary (r : Rule) (c : Cat) (t : Tree)
+
+----
 
 private def Tree.toStringAux (n : Nat) : Tree → String
   | .leaf t c =>
@@ -100,6 +117,7 @@ def Tree.cat : Tree → Cat
   | .leaf _ c => c
   | .branch _ c _ _ => c
   | .unary _ c _ => c
+
 
 /- ## 組合せ規則の適用 -/
 
