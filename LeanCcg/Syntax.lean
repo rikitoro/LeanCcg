@@ -1,5 +1,8 @@
 import LeanCcg.Util
 
+/- # 範疇 Cat の定義 -/
+
+/-- 関数適用の向き -/
 inductive Dir
   | Fwd -- /
   | Bwd -- \
@@ -20,8 +23,10 @@ inductive Cat : Type
   | Fun : Dir → Cat → Cat → Cat -- x / y or x \ y
   deriving BEq
 
-infixl:70 " /> "   => Cat.Fun Dir.Fwd
-infixl:70 " \\> "  => Cat.Fun Dir.Bwd
+/-- 関数適用の記法 -/
+infixl:70 " /> "   => Cat.Fun Dir.Fwd -- x / y を x /> y で表記
+infixl:70 " \\> "  => Cat.Fun Dir.Bwd -- x \ y を x \> y で表記
+
 
 def Cat.toString : Cat → String
   | .S  => "S"
