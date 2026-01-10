@@ -40,6 +40,26 @@ def bcompGen : Cat → Cat → Option Cat
       | none => none
   | _, _ => none
 
+/-- Forward crossed substitution
+  [>Sx] x/y\z y\z ⟹ x\z -/
+def fcross : Cat → Cat → Option Cat
+  | .Fun .Bwd (.Fun .Fwd x y) z, .Fun .Bwd y' z' =>
+    if y == y' && z == z' then
+      some (x \> z)
+    else
+      none
+  | _, _ => none
+
+/-- Backward crossed substitution
+  [>Sx] x/y\z y\z ⟹ x\z -/
+def bcross : Cat → Cat → Option Cat
+  | .Fun .Fwd y' z', .Fun .Fwd (.Fun .Bwd x y) z  =>
+    if y == y' && z == z' then
+      some (x /> z)
+    else
+      none
+  | _, _ => none
+
 /- ## Type raising -/
 
 /-- Forward Type rising
@@ -55,29 +75,25 @@ def btraise : Cat → Option Cat
   | _ => none
 
 
-
-def Rule.applyBinary : Rule → Cat → Cat → Option Cat
-  | .Fa, lc, rc => fapp lc rc
-  | .Ba, lc, rc => bapp lc rc
-  | .Fc, lc, rc => fcompGen lc rc
-  | .Bc, lc, rc => bcompGen lc rc
-  | _, _, _ => none
-
-def Rule.applyUnary : Rule → Cat → Option Cat
-  | .Ft, c => ftraise c
-  | .Bt, c => btraise c
-  | _, _ => none
+def BinaryRule.applyBinary : BinaryRule → Cat → Cat → Option Cat
+  | .Fa => fapp
+  | .Ba => bapp
+  | .Fc => fcompGen
+  | .Bc => bcompGen
+  | .Fx => fcross
+  | .Bx => bcross
 
 
+def UnaryRule.applyUnary : UnaryRule → Cat → Option Cat
+  | .Ft => ftraise
+  | .Bt => btraise
 
 
-def tryBinaryRules (lc rc : Cat) : List (Rule × Cat) :=
-  let binaryRules : List Rule := [.Fa, .Ba, .Fc, .Bc]
+def tryBinaryRules (lc rc : Cat) : List (BinaryRule × Cat) :=
   binaryRules.filterMap fun r ↦
     (r.applyBinary lc rc).map (r, ·)
 
-def tryUnaryRules (c : Cat) : List (Rule × Cat) :=
-  let unaryRules  : List Rule := [.Ft, .Bt]
+def tryUnaryRules (c : Cat) : List (UnaryRule × Cat) :=
   unaryRules.filterMap fun r ↦
     (r.applyUnary c).map (r, ·)
 

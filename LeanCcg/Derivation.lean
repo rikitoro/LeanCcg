@@ -7,8 +7,8 @@ import LeanCcg.Rule
 
 inductive Tree : Type
   | leaf (tok : Token) (c : Cat)
-  | branch (r : Rule) (c : Cat) (lt rt : Tree)
-  | unary (r : Rule) (c : Cat) (t : Tree) -- type raing 用
+  | branch (r : BinaryRule) (c : Cat) (lt rt : Tree)
+  | unary (r : UnaryRule) (c : Cat) (t : Tree) -- type raing 用
 
 
 def Tree.cat : Tree → Cat
@@ -29,7 +29,9 @@ private def Tree.toStringAux (n : Nat) : Tree → String
     pre n ++ s!"{c} {r}\n" ++
     toStringAux (n + 1) t
   where
-    pre n := "| ".replicateStr n
+    pre : Nat → String
+    | 0 => " "
+    | n + 1 => "│".replicateStr n ++ "├ "
 
 def Tree.toString (t : Tree) : String :=
   "\n" ++ t.toStringAux 0
