@@ -2,7 +2,7 @@ import LeanCcg.Syntax
 import LeanCcg.Rule
 import LeanCcg.Derivation
 
-/- ## 組合せ規則の適用 -/
+/- # 組合せ規則の適用 -/
 
 /-- Forward functional application
   [>] x/y y ⟹ x -/
@@ -60,8 +60,6 @@ def bcross : Cat → Cat → Option Cat
       none
   | _, _ => none
 
-/- ## Type raising -/
-
 /-- Forward Type rising
   [>T] x ⟹ t/(t\x) : 今回は x = NP, t = S に限定する -/
 def ftraise : Cat → Option Cat
@@ -75,6 +73,8 @@ def btraise : Cat → Option Cat
   | _ => none
 
 
+/- ## Rule との対応付け -/
+
 def BinaryRule.applyBinary : BinaryRule → Cat → Cat → Option Cat
   | .Fa => fapp
   | .Ba => bapp
@@ -83,11 +83,11 @@ def BinaryRule.applyBinary : BinaryRule → Cat → Cat → Option Cat
   | .Fx => fcross
   | .Bx => bcross
 
-
 def UnaryRule.applyUnary : UnaryRule → Cat → Option Cat
   | .Ft => ftraise
   | .Bt => btraise
 
+/- ## Tree への適用 -/
 
 def tryBinaryRules (lc rc : Cat) : List (BinaryRule × Cat) :=
   binaryRules.filterMap fun r ↦
@@ -96,7 +96,6 @@ def tryBinaryRules (lc rc : Cat) : List (BinaryRule × Cat) :=
 def tryUnaryRules (c : Cat) : List (UnaryRule × Cat) :=
   unaryRules.filterMap fun r ↦
     (r.applyUnary c).map (r, ·)
-
 
 def combineTree (lt rt : Tree) : List Tree :=
   let applied := tryBinaryRules lt.cat rt.cat
