@@ -1,5 +1,7 @@
+section Utility
 /- # Utilities -/
-abbrev Token := String
+
+abbrev Token := String -- 語(token)の型
 
 def String.replicateStr (str : String) (n : Nat) : String :=
   String.join <| List.replicate n str
@@ -7,27 +9,28 @@ def String.replicateStr (str : String) (n : Nat) : String :=
 def String.toTokens (str : String) : List Token :=
   str.splitOn.filter (· ≠ "")
 
-/- # 文法の定義 (Dir, Cat) -/
+end Utility
 
-/- ## 範疇 Cat の定義 -/
+section Category
+/- # 統語範疇 (Cat) の定義 -/
 
-/-- 複合範疇の適用方向 -/
-inductive Dir
-  | Fwd -- / 前方適用
-  | Bwd -- \ 後方適用
+/-- 関数適用の向き -/
+inductive Dir : Type
+  | Fwd -- /
+  | Bwd -- \
   deriving BEq
 
 /-- 範疇 Cat -/
 inductive Cat : Type
   | S   : Cat
   | NP  : Cat
-  | N   : Cat
-  | Fun : Dir → Cat → Cat → Cat -- x / y or x \ y
+  | N   : Cat   -- 基底範疇 (S, NP, N)
+  | Fun : Dir → Cat → Cat → Cat -- 関数型範疇 x/y or x\y
   deriving BEq
 
-/-- 適用方向の表記法 -/
-infixl:70 " /> "   => Cat.Fun Dir.Fwd -- x / y を x /> y で表記
-infixl:70 " \\> "  => Cat.Fun Dir.Bwd -- x / y を x \> y で表記
+/-- 関数型範疇の記法 -/
+infixl:70 " /> "   => Cat.Fun Dir.Fwd -- x/y を x /> y で表記
+infixl:70 " \\> "  => Cat.Fun Dir.Bwd -- x\y を x \> y で表記
 
 ---
 
@@ -39,9 +42,7 @@ instance : ToString Dir where
   toString := Dir.toString
 
 def Cat.toString : Cat → String
-  | .S  => "S"
-  | .NP => "NP"
-  | .N  => "N"
+  | .S  => "S"  | .NP => "NP"  | .N  => "N"
   | .Fun d x y =>
     match x, y with
     | .Fun .., .Fun .. => "(" ++ x.toString ++ ")" ++ d.toString ++ "(" ++ y.toString ++ ")"
@@ -52,74 +53,48 @@ def Cat.toString : Cat → String
 instance : ToString Cat where
   toString := Cat.toString
 
+end Category
 
-/- # 適用規則 (Rule) -/
+section Rules
+/- # CCGの組合せ規則 (BinaryRule, UnaryRule) -/
 
-inductive Rule : Type
+/- ## 組合せ規則の一覧 -/
+
+inductive BinaryRule : Type
   | Fa  -- forward app [>]
   | Ba  -- backward app [<]
   | Fc  -- forward comp gen [>B]
   | Bc  -- backward comp gen [<B]
+
+inductive UnaryRule : Type
   | Ft  -- forward type raising [>T]
   | Bt  -- backward type raising [<T]
 
-def binaryRules : List Rule :=
-  [.Fa, .Ba, .Fc, .Bc]
+def binaryRules : List BinaryRule := [.Fa, .Ba, .Fc, .Bc]
+def unaryRules  : List UnaryRule  := [.Ft, .Bt]
 
-def unaryRules : List Rule :=
-  [.Ft, .Bt]
+---
 
---
-
-def Rule.toString : Rule → String
+def BinaryRule.toString : BinaryRule → String
   | .Fa => "[>]"
   | .Ba => "[<]"
   | .Fc => "[>B]"
   | .Bc => "[<B]"
+
+def UnaryRule.toString : UnaryRule → String
   | .Ft => "[>T]"
   | .Bt => "[<T]"
 
-instance : ToString Rule where
-  toString := Rule.toString
+instance : ToString BinaryRule where
+  toString := BinaryRule.toString
 
-
-/- # 導出木の定義 (Tree) -/
-
-/-- 導出木 -/
-inductive Tree : Type
-  | leaf (tok : Token) (c : Cat)
-  | branch (r : Rule) (c : Cat) (lt rt : Tree)
-  | unary (r : Rule) (c : Cat) (t : Tree)
-
-----
-
-private def Tree.toStringAux (n : Nat) : Tree → String
-  | .leaf t c =>
-    pre n ++
-    s!"{c} \"{t}\""
-  | .branch r c lt rt =>
-    pre n ++ s!"{c} {r}\n" ++
-    toStringAux (n + 1) lt ++ "\n" ++
-    toStringAux (n + 1) rt
-  | .unary r c t =>
-    pre n ++ s!"{c} {r}\n" ++
-    toStringAux (n + 1) t
-  where
-    pre n := "| ".replicateStr n
-
-def Tree.toString (t : Tree) : String :=
-  "\n" ++ t.toStringAux 0
-
-instance : ToString Tree where
-  toString := Tree.toString
-
-def Tree.cat : Tree → Cat
-  | .leaf _ c => c
-  | .branch _ c _ _ => c
-  | .unary _ c _ => c
+instance : ToString UnaryRule where
+  toString := UnaryRule.toString
 
 
 /- ## 組合せ規則の適用 -/
+
+-- ### Binary Rules
 
 /-- Forward functional application
   [>] x/y y ⟹ x -/
@@ -157,55 +132,100 @@ def bcompGen : Cat → Cat → Option Cat
       | none => none
   | _, _ => none
 
-/- ### 導出木への組合せ規則の適用 -/
+-- ### Unary Rules
 
-def tryBinaryRules (lc rc : Cat) : List (Rule × Cat) :=
-  let rules : List (Rule × Option Cat) := [
-    (.Fa, fapp lc rc),
-    (.Ba, bapp lc rc),
-    (.Fc, fcompGen lc rc),
-    (.Bc, bcompGen lc rc)
-  ]
-  rules.filterMap fun (rule, res) ↦
-    res.map fun c ↦ (rule, c)
+/-- Forward Type rising
+  [>T] x ⟹ t/(t\x) : 今回は x = NP, t = S に限定する -/
+def fraise (x : Cat := .NP) (t : Cat := .S) : Cat → Option Cat
+  | .NP => some (t /> (t \> x))
+  | _ => none
+
+/-- Backward Type rising
+  [<T] x ⟹ t\ (t/x) : 今回は x = NP, t = S に限定する -/
+def braise (x : Cat := .NP) (t : Cat := .S) : Cat → Option Cat
+  | .NP => some (t \> (t /> x))
+  | _ => none
+
+
+/- ## Rule との対応付け -/
+
+def BinaryRule.applyBinary : BinaryRule → Cat → Cat → Option Cat
+  | .Fa => fapp
+  | .Ba => bapp
+  | .Fc => fcompGen
+  | .Bc => bcompGen
+
+def UnaryRule.applyUnary : UnaryRule → Cat → Option Cat
+  | .Ft => fraise
+  | .Bt => braise
+
+end Rules
+
+section Tree
+/- # 導出木 (Tree) の定義 -/
+
+inductive Tree : Type
+  | leaf (tok : Token) (c : Cat)
+  | branch (r : BinaryRule) (c : Cat) (lt rt : Tree)
+  | unary (r : UnaryRule) (c : Cat) (t : Tree)
+
+
+def Tree.cat : Tree → Cat
+  | .leaf _ c => c
+  | .branch _ c _ _ => c
+  | .unary _ c _ => c
+
+---
+
+private def Tree.toStringAux (n : Nat) : Tree → String
+  | .leaf t c =>
+    pre n ++
+    s!"{c} \"{t}\""
+  | .branch r c lt rt =>
+    pre n ++ s!"{c} {r}\n" ++
+    toStringAux (n + 1) lt ++ "\n" ++
+    toStringAux (n + 1) rt
+  | .unary r c t =>
+    pre n ++ s!"{c} {r}\n" ++
+    toStringAux (n + 1) t
+  where
+    pre : Nat → String
+    | 0 => " "
+    | n + 1 => "│".replicateStr n ++ "├ "
+
+def Tree.toString (t : Tree) : String :=
+  "\n" ++ t.toStringAux 0
+
+instance : ToString Tree where
+  toString := Tree.toString
+
+end Tree
+
+section Applying
+/- ## 適用規則の Tree への適用 -/
+
+def tryBinaryRules (lc rc : Cat) : List (BinaryRule × Cat) :=
+  binaryRules.filterMap fun r ↦
+    (r.applyBinary lc rc).map (r, ·)
+
+def tryUnaryRules (c : Cat) : List (UnaryRule × Cat) :=
+  unaryRules.filterMap fun r ↦
+    (r.applyUnary c).map (r, ·)
 
 def combineTree (lt rt : Tree) : List Tree :=
   let applied := tryBinaryRules lt.cat rt.cat
   applied.map fun (r, c) ↦ .branch r c lt rt
 
-
-/- ## 型繰り上げ規則 (Type raising) の適用 -/
-
-/-- Forward Type rising
-  [>T] x ⟹ t/(t\x) : 今回は x = NP, t = S に限定する -/
-def ftraise : Cat → Option Cat
-  | .NP => some (.S /> (.S \> .NP))
-  | _ => none
-
-/-- Backward Type rising
-  [<T] x ⟹ t\ (t/x) : 今回は x = NP, t = S に限定する -/
-def btraise : Cat → Option Cat
-  | .NP => some (.S \> (.S /> .NP))
-  | _ => none
-
-/- ### 導出木への型繰り上げ規則の適用 -/
-
-def tryUnaryRules (c : Cat) : List (Rule × Cat) :=
-  let rules : List (Rule × Option Cat) := [
-    (.Ft, ftraise c),
-    (.Bt, btraise c)
-  ]
-  rules.filterMap fun (rule, res) ↦
-    res.map fun c ↦ (rule, c)
-
 def raiseTree (t : Tree) : List Tree :=
   let applied := tryUnaryRules t.cat
   applied.map fun (r, c) ↦ .unary r c t
 
+end Applying
 
-/- ## CYKアルゴリズムによるチャートパーシング -/
+section Parsing
+/- # CYKアルゴリズムによるチャートパーシング -/
 
-/- ### 各セルの定義 -/
+/- ## 各セルの定義 -/
 structure Cell where
   span  : Nat
   index : Nat
@@ -220,13 +240,14 @@ instance : ToString Cell where
 abbrev Chart := List Cell
 
 def Chart.lookup (chart : Chart) (span index : Nat) : List Tree :=
-  let cell : Option Cell := chart.find? fun ⟨s', i', _⟩ ↦ s' == span && i' == index
+  let cell : Option Cell :=
+    chart.find? fun ⟨s', i', _⟩ ↦ s' = span && i' = index
   match cell with
   | some ⟨_, _, ts⟩ => ts
   | none => []
 
-/-- ### CYK パーシング -/
-def fillChart (toks : List Token) (lexicon : Token → List Cat) : Chart := Id.run do
+/-- ## CYK パーシング -/
+def fillChart (lexicon : Token → List Cat) (toks : List Token)  : Chart := Id.run do
   let len := toks.length
   -- リーフノードを作成 (span = 1)
   let mut chart : Chart :=
@@ -247,11 +268,22 @@ def fillChart (toks : List Token) (lexicon : Token → List Cat) : Chart := Id.r
       chart := chart.concat ⟨span, i, trees ++ trees'⟩
   return chart
 
-/- ## 語彙辞書 lexicon の定義 -/
+def parseCCG  (lexicon : Token → List Cat) (toks : List Token) : List Tree :=
+  let chart := fillChart lexicon toks
+  let len := toks.length
+  chart.lookup len 0
+
+def parse  (lexicon : Token → List Cat) (sentence : String): List Tree :=
+  let toks : List Token := sentence.toTokens
+  parseCCG lexicon toks
+
+end Parsing
+
+section Example
+/- # Examples -/
 
 def lexicon1 : Token → List Cat
   | "Keats"   => [.NP]
-  | "Sid"     => [.NP]
   | "eats"    => [.S \> .NP /> .NP]
   | "cooks"   => [.S \> .NP /> .NP]
   | "an"      => [.NP /> .N]
@@ -259,53 +291,37 @@ def lexicon1 : Token → List Cat
   | "apples"  => [.NP]
   | _         => []
 
-
-
-/- ## parser の定義 -/
-def parseCCG  (lexicon : Token → List Cat) (toks : List Token) : List Tree :=
-  let chart := fillChart toks lexicon
-  let len := toks.length
-  chart.lookup len 0
-
-def parse  (lexicon : Token → List Cat) (sentence : String): List Tree :=
-  parseCCG lexicon sentence.toTokens
-
-
--- ## #eval で parse を評価して試せます
-
 #eval parse lexicon1 "Keats eats apples"
 -- [
--- S [<]
--- | NP "Keats"
--- | S\NP [>]
--- | | (S\NP)/NP "eats"
--- | | NP "apples",
--- S [>]
--- | S/(S\NP) [>T]
--- | | NP "Keats"
--- | S\NP [>]
--- | | (S\NP)/NP "eats"
--- | | NP "apples",
--- S [>]
--- | S/NP [>B]
--- | | S/(S\NP) [>T]
--- | | | NP "Keats"
--- | | (S\NP)/NP "eats"
--- | NP "apples",
--- S [<]
--- | S/NP [>B]
--- | | S/(S\NP) [>T]
--- | | | NP "Keats"
--- | | (S\NP)/NP "eats"
--- | S\(S/NP) [<T]
--- | | NP "apples"]
+--  S [<]
+-- ├ NP "Keats"
+-- ├ S\NP [>]
+-- │├ (S\NP)/NP "eats"
+-- │├ NP "apples",
+--  S [>]
+-- ├ S/(S\NP) [>T]
+-- │├ NP "Keats"
+-- ├ S\NP [>]
+-- │├ (S\NP)/NP "eats"
+-- │├ NP "apples",
+--  S [>]
+-- ├ S/NP [>B]
+-- │├ S/(S\NP) [>T]
+-- ││├ NP "Keats"
+-- │├ (S\NP)/NP "eats"
+-- ├ NP "apples",
+--  S [<]
+-- ├ S/NP [>B]
+-- │├ S/(S\NP) [>T]
+-- ││├ NP "Keats"
+-- │├ (S\NP)/NP "eats"
+-- ├ S\(S/NP) [<T]
+-- │├ NP "apples"]
 
 #eval parse lexicon1 "Keats eats an apple"
 
--- おまけ
-
 def lexicon2 : Token → List Cat
-  | "I"       => [.NP]
+  | "I"       => [.S /> (.S \> .NP)]
   | "think"   => [.S \> .NP /> .S,]
   | "that"    => [.S /> .S, .NP /> .N, .N, .N \> .N /> (.S /> .NP)]
   | "boy"     => [.N]
@@ -315,3 +331,5 @@ def lexicon2 : Token → List Cat
   | _ => []
 
 #eval parse lexicon2 "I think that that that that that boy wrote is wrong"
+
+end Example

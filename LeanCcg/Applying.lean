@@ -1,5 +1,5 @@
 import LeanCcg.Rules
-import LeanCcg.Derivation
+import LeanCcg.Tree
 
 /- ## 適用規則の Tree への適用 -/
 

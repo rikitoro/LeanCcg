@@ -1,9 +1,8 @@
-import LeanCcg.Util
+import LeanCcg.Utility
 import LeanCcg.Rules
 
-/- # 導出木 (Tree) -/
+/- # 導出木 (Tree) の定義 -/
 
-/- ## 導出木 -/
 inductive Tree : Type
   | leaf (tok : Token) (c : Cat)
   | branch (r : BinaryRule) (c : Cat) (lt rt : Tree)

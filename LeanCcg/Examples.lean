@@ -1,5 +1,7 @@
 import LeanCcg.Parsing
 
+/- # Examples -/
+
 def lexicon1 : Token → List Cat
   | "Keats"   => [.NP]
   | "eats"    => [.S \> .NP /> .NP]

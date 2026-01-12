@@ -1,4 +1,4 @@
-import LeanCcg.Syntax
+import LeanCcg.Category
 
 /- # CCGの組合せ規則 (BinaryRule, UnaryRule) -/
 
