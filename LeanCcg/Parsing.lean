@@ -1,11 +1,8 @@
-import LeanCcg.Util
-import LeanCcg.Syntax
-import LeanCcg.Derivation
-import LeanCcg.Rules
+import LeanCcg.Applying
 
-/- ## CYKアルゴリズムによるチャートパーシング -/
+/- # CYKアルゴリズムによるチャートパーシング -/
 
-/- ### 各セルの定義 -/
+/- ## 各セルの定義 -/
 structure Cell where
   span  : Nat
   index : Nat
@@ -26,7 +23,7 @@ def Chart.lookup (chart : Chart) (span index : Nat) : List Tree :=
   | some ⟨_, _, ts⟩ => ts
   | none => []
 
-/-- ### CYK パーシング -/
+/-- ## CYK パーシング -/
 def fillChart (lexicon : Token → List Cat) (toks : List Token)  : Chart := Id.run do
   let len := toks.length
   -- リーフノードを作成 (span = 1)

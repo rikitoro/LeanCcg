@@ -1,8 +1,48 @@
 import LeanCcg.Syntax
-import LeanCcg.Rule
-import LeanCcg.Derivation
 
-/- # 組合せ規則の適用 -/
+/- # CCGの組合せ規則 (BinaryRule, UnaryRule) -/
+
+/- ## 組合せ規則の一覧 -/
+
+inductive BinaryRule : Type
+  | Fa  -- forward app [>]
+  | Ba  -- backward app [<]
+  | Fc  -- forward comp gen [>B]
+  | Bc  -- backward comp gen [<B]
+  | Fx  -- forward crossed subst [>Sx]
+  | Bx  -- backward crossed subst [<Sx]
+
+inductive UnaryRule : Type
+  | Ft  -- forward type raising [>T]
+  | Bt  -- backward type raising [<T]
+
+def binaryRules : List BinaryRule := [.Fa, .Ba, .Fc, .Bc, .Fx, .Bx]
+def unaryRules  : List UnaryRule  := [.Ft, .Bt]
+
+---
+
+def BinaryRule.toString : BinaryRule → String
+  | .Fa => "[>]"
+  | .Ba => "[<]"
+  | .Fc => "[>B]"
+  | .Bc => "[<B]"
+  | .Fx => "[>Sx]"
+  | .Bx => "[<Sx]"
+
+def UnaryRule.toString : UnaryRule → String
+  | .Ft => "[>T]"
+  | .Bt => "[<T]"
+
+instance : ToString BinaryRule where
+  toString := BinaryRule.toString
+
+instance : ToString UnaryRule where
+  toString := UnaryRule.toString
+
+
+/- ## 組合せ規則の適用 -/
+
+-- ### Binary Rules
 
 /-- Forward functional application
   [>] x/y y ⟹ x -/
@@ -60,16 +100,18 @@ def bcross : Cat → Cat → Option Cat
       none
   | _, _ => none
 
+-- ### Unary Rules
+
 /-- Forward Type rising
   [>T] x ⟹ t/(t\x) : 今回は x = NP, t = S に限定する -/
-def ftraise : Cat → Option Cat
-  | .NP => some (.S /> (.S \> .NP))
+def fraise (x : Cat := .NP) (t : Cat := .S) : Cat → Option Cat
+  | .NP => some (t /> (t \> x))
   | _ => none
 
 /-- Backward Type rising
   [<T] x ⟹ t\ (t/x) : 今回は x = NP, t = S に限定する -/
-def btraise : Cat → Option Cat
-  | .NP => some (.S \> (.S /> .NP))
+def braise (x : Cat := .NP) (t : Cat := .S) : Cat → Option Cat
+  | .NP => some (t \> (t /> x))
   | _ => none
 
 
@@ -84,23 +126,5 @@ def BinaryRule.applyBinary : BinaryRule → Cat → Cat → Option Cat
   | .Bx => bcross
 
 def UnaryRule.applyUnary : UnaryRule → Cat → Option Cat
-  | .Ft => ftraise
-  | .Bt => btraise
-
-/- ## Tree への適用 -/
-
-def tryBinaryRules (lc rc : Cat) : List (BinaryRule × Cat) :=
-  binaryRules.filterMap fun r ↦
-    (r.applyBinary lc rc).map (r, ·)
-
-def tryUnaryRules (c : Cat) : List (UnaryRule × Cat) :=
-  unaryRules.filterMap fun r ↦
-    (r.applyUnary c).map (r, ·)
-
-def combineTree (lt rt : Tree) : List Tree :=
-  let applied := tryBinaryRules lt.cat rt.cat
-  applied.map fun (r, c) ↦ .branch r c lt rt
-
-def raiseTree (t : Tree) : List Tree :=
-  let applied := tryUnaryRules t.cat
-  applied.map fun (r, c) ↦ .unary r c t
+  | .Ft => fraise
+  | .Bt => braise

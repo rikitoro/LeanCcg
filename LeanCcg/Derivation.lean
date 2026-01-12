@@ -1,14 +1,13 @@
 import LeanCcg.Util
-import LeanCcg.Syntax
-import LeanCcg.Rule
+import LeanCcg.Rules
 
+/- # 導出木 (Tree) -/
 
-/- ## 導出木 Tree の定義 -/
-
+/- ## 導出木 -/
 inductive Tree : Type
   | leaf (tok : Token) (c : Cat)
   | branch (r : BinaryRule) (c : Cat) (lt rt : Tree)
-  | unary (r : UnaryRule) (c : Cat) (t : Tree) -- type raing 用
+  | unary (r : UnaryRule) (c : Cat) (t : Tree)
 
 
 def Tree.cat : Tree → Cat
@@ -16,6 +15,7 @@ def Tree.cat : Tree → Cat
   | .branch _ c _ _ => c
   | .unary _ c _ => c
 
+---
 
 private def Tree.toStringAux (n : Nat) : Tree → String
   | .leaf t c =>
