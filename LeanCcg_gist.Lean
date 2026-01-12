@@ -190,8 +190,8 @@ private def Tree.toStringAux (n : Nat) : Tree → String
     toStringAux (n + 1) t
   where
     pre : Nat → String
-    | 0 => " "
-    | n + 1 => "│".replicateStr n ++ "├ "
+    | 0 => ""
+    | n + 1 => "│".replicateStr n ++ "├"
 
 def Tree.toString (t : Tree) : String :=
   "\n" ++ t.toStringAux 0
@@ -293,30 +293,30 @@ def lexicon1 : Token → List Cat
 
 #eval parse lexicon1 "Keats eats apples"
 -- [
---  S [<]
--- ├ NP "Keats"
--- ├ S\NP [>]
--- │├ (S\NP)/NP "eats"
--- │├ NP "apples",
---  S [>]
--- ├ S/(S\NP) [>T]
--- │├ NP "Keats"
--- ├ S\NP [>]
--- │├ (S\NP)/NP "eats"
--- │├ NP "apples",
---  S [>]
--- ├ S/NP [>B]
--- │├ S/(S\NP) [>T]
--- ││├ NP "Keats"
--- │├ (S\NP)/NP "eats"
--- ├ NP "apples",
---  S [<]
--- ├ S/NP [>B]
--- │├ S/(S\NP) [>T]
--- ││├ NP "Keats"
--- │├ (S\NP)/NP "eats"
--- ├ S\(S/NP) [<T]
--- │├ NP "apples"]
+-- S [<]
+-- ├NP "Keats"
+-- ├S\NP [>]
+-- │├(S\NP)/NP "eats"
+-- │├NP "apples",
+-- S [>]
+-- ├S/(S\NP) [>T]
+-- │├NP "Keats"
+-- ├S\NP [>]
+-- │├(S\NP)/NP "eats"
+-- │├NP "apples",
+-- S [>]
+-- ├S/NP [>B]
+-- │├S/(S\NP) [>T]
+-- ││├NP "Keats"
+-- │├(S\NP)/NP "eats"
+-- ├NP "apples",
+-- S [<]
+-- ├S/NP [>B]
+-- │├S/(S\NP) [>T]
+-- ││├NP "Keats"
+-- │├(S\NP)/NP "eats"
+-- ├S\(S/NP) [<T]
+-- │├NP "apples"]
 
 #eval parse lexicon1 "Keats eats an apple"
 

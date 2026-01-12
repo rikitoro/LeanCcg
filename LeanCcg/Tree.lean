@@ -29,8 +29,8 @@ private def Tree.toStringAux (n : Nat) : Tree → String
     toStringAux (n + 1) t
   where
     pre : Nat → String
-    | 0 => " "
-    | n + 1 => "│".replicateStr n ++ "├ "
+    | 0 => ""
+    | n + 1 => "│".replicateStr n ++ "├"
 
 def Tree.toString (t : Tree) : String :=
   "\n" ++ t.toStringAux 0
