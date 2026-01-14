@@ -239,7 +239,7 @@ def Lexicon.getCats (lex : Lexicon) (t : Token) : List Cat :=
 -/
 abbrev Chart := Std.HashMap (Nat × Nat) (List Tree) -- key : (span, i)
 
-def Chart.getTrees (chart : Chart) (span_i : Nat×Nat) :=
+def Chart.getTrees (chart : Chart) (span_i : Nat×Nat) : List Tree :=
   chart.getD span_i []
 
 /-- ## CYK パーシング -/
