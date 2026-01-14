@@ -2,44 +2,6 @@ import LeanCcg.Category
 
 /- # CCGの組合せ規則 (BinaryRule, UnaryRule) -/
 
-/- ## 組合せ規則の一覧 -/
-
-inductive BinaryRule : Type
-  | Fa  -- forward app [>]
-  | Ba  -- backward app [<]
-  | Fc  -- forward comp gen [>B]
-  | Bc  -- backward comp gen [<B]
-  | Fx  -- forward crossed subst [>Sx]
-  | Bx  -- backward crossed subst [<Sx]
-
-inductive UnaryRule : Type
-  | Ft  -- forward type raising [>T]
-  | Bt  -- backward type raising [<T]
-
-def binaryRules : List BinaryRule := [.Fa, .Ba, .Fc, .Bc, .Fx, .Bx]
-def unaryRules  : List UnaryRule  := [.Ft, .Bt]
-
----
-
-def BinaryRule.toString : BinaryRule → String
-  | .Fa => "[>]"
-  | .Ba => "[<]"
-  | .Fc => "[>B]"
-  | .Bc => "[<B]"
-  | .Fx => "[>Sx]"
-  | .Bx => "[<Sx]"
-
-def UnaryRule.toString : UnaryRule → String
-  | .Ft => "[>T]"
-  | .Bt => "[<T]"
-
-instance : ToString BinaryRule where
-  toString := BinaryRule.toString
-
-instance : ToString UnaryRule where
-  toString := UnaryRule.toString
-
-
 /- ## 組合せ規則の適用 -/
 
 -- ### Binary Rules
@@ -114,6 +76,43 @@ def braise (x : Cat := .NP) (t : Cat := .S) : Cat → Option Cat
   | .NP => some (t \> (t /> x))
   | _ => none
 
+
+/- ## 組合せ規則の一覧 -/
+
+inductive BinaryRule : Type
+  | Fa  -- forward app [>]
+  | Ba  -- backward app [<]
+  | Fc  -- forward comp gen [>B]
+  | Bc  -- backward comp gen [<B]
+  | Fx  -- forward crossed subst [>Sx]
+  | Bx  -- backward crossed subst [<Sx]
+
+inductive UnaryRule : Type
+  | Ft  -- forward type raising [>T]
+  | Bt  -- backward type raising [<T]
+
+def binaryRules : List BinaryRule := [.Fa, .Ba, .Fc, .Bc, .Fx, .Bx]
+def unaryRules  : List UnaryRule  := [.Ft, .Bt]
+
+---
+
+def BinaryRule.toString : BinaryRule → String
+  | .Fa => "[>]"
+  | .Ba => "[<]"
+  | .Fc => "[>B]"
+  | .Bc => "[<B]"
+  | .Fx => "[>Sx]"
+  | .Bx => "[<Sx]"
+
+def UnaryRule.toString : UnaryRule → String
+  | .Ft => "[>T]"
+  | .Bt => "[<T]"
+
+instance : ToString BinaryRule where
+  toString := BinaryRule.toString
+
+instance : ToString UnaryRule where
+  toString := UnaryRule.toString
 
 /- ## Rule との対応付け -/
 
