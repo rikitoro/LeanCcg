@@ -33,6 +33,5 @@ def lexicon3 : Lexicon := {
   ("these",     [.NP /> .NP]),
   ("articles",  [.NP])}
 
-
 #eval parse lexicon3 "file without reading"
 #eval parse lexicon3 "Keats will file without reading these articles"

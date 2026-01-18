@@ -1,6 +1,7 @@
 /- # Utilities -/
 
-abbrev Token := String -- 語(token)の型
+/-- 語 (token) を表す型 -/
+abbrev Token := String
 
 def String.replicateStr (str : String) (n : Nat) : String :=
   String.join <| List.replicate n str

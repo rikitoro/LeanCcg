@@ -31,8 +31,8 @@ def Cat.toString : Cat → String
   | .S  => "S"  | .NP => "NP"  | .N  => "N"
   | .Fun d x y =>
     match x, y with
-    | .Fun .., .Fun .. => "(" ++ x.toString ++ ")" ++ d.toString ++ "(" ++ y.toString ++ ")"
-    | .Fun .., _       => "(" ++ x.toString ++ ")" ++ d.toString ++ y.toString
+    | .Fun .., .Fun .. => x.toString ++ d.toString ++ "(" ++ y.toString ++ ")"
+    | .Fun .., _       => x.toString ++ d.toString ++ y.toString
     | _      , .Fun .. => x.toString ++ d.toString ++ "(" ++ y.toString ++ ")"
     | _      , _       => x.toString ++ d.toString ++ y.toString
 

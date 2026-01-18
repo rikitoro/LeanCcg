@@ -1,5 +1,5 @@
+import Std.Data.HashMap
 import LeanCcg.Applying
-import Std
 
 /- # CYKアルゴリズムによるチャートパーシング -/
 
