@@ -47,6 +47,7 @@ private def andCat : Cat :=
 -- X0 への代入は X1 に影響しない
 #guard (Subst.single 0 .NP).apply (.Var 1) == .Var 1
 
+
 #guard
   let first  := Subst.single 0 (.Var 1) -- X0 ↦ X1
   let second := Subst.single 1 .NP      -- X1 ↦ NP
