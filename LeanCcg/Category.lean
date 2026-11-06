@@ -6,11 +6,14 @@ inductive Dir : Type
   | Bwd -- \
   deriving BEq
 
+abbrev VarId := Nat
+
 /-- 範疇 Cat -/
 inductive Cat : Type
   | S   : Cat
   | NP  : Cat
   | N   : Cat   -- 基底範疇 (S, NP, N)
+  | Var : VarId → Cat
   | Fun : Dir → Cat → Cat → Cat -- 関数型範疇 x/y or x\y
   deriving BEq
 
@@ -29,12 +32,13 @@ instance : ToString Dir where
 
 def Cat.toString : Cat → String
   | .S  => "S"  | .NP => "NP"  | .N  => "N"
+  | .Var v => s!"X{v}"
   | .Fun d x y =>
     match x, y with
-    | .Fun .., .Fun .. => x.toString ++ d.toString ++ "(" ++ y.toString ++ ")"
-    | .Fun .., _       => x.toString ++ d.toString ++ y.toString
-    | _      , .Fun .. => x.toString ++ d.toString ++ "(" ++ y.toString ++ ")"
-    | _      , _       => x.toString ++ d.toString ++ y.toString
+    | .Fun .., .Fun .. => s!"{x.toString}{d}({y.toString})" -- x.toString ++ d.toString ++ "(" ++ y.toString ++ ")"
+    | .Fun .., _       => s!"{x.toString}{d}{y.toString}" -- x.toString ++ d.toString ++ y.toString
+    | _      , .Fun .. => s!"{x.toString}{d}({y.toString})" -- x.toString ++ d.toString ++ "(" ++ y.toString ++ ")"
+    | _      , _       => s!"{x.toString}{d}{y.toString}" -- x.toString ++ d.toString ++ y.toString
 
 instance : ToString Cat where
   toString := Cat.toString
