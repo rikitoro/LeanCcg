@@ -17,11 +17,19 @@ inductive Cat : Type
   | Fun : Dir → Cat → Cat → Cat -- 関数型範疇 x/y or x\y
   deriving BEq
 
+/-- 範疇の中に変数 v が表れるか -/
+def Cat.occurs (v : VarId) : Cat → Bool
+  | .Var w      => v == w
+  | .Fun _ x y  => Cat.occurs v x || Cat.occurs v y
+  | _           => false
+
+
 /-- 関数型範疇の記法 -/
 infixl:70 " /> "   => Cat.Fun Dir.Fwd -- x/y を x /> y で表記
 infixl:70 " \\> "  => Cat.Fun Dir.Bwd -- x\y を x \> y で表記
 
----
+
+
 
 def Dir.toString : Dir → String
   | .Fwd => "/"
@@ -42,3 +50,6 @@ def Cat.toString : Cat → String
 
 instance : ToString Cat where
   toString := Cat.toString
+
+
+#guard Cat.occurs 0 (.S /> .Var 0)

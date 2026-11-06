@@ -20,6 +20,12 @@ def apply (σ : Subst) : Cat → Cat
   | .Fun d x y  => .Fun d (apply σ x) (apply σ y)
   | c           => c
 
+/-- before, after の順に適用する置換 -/
+def compose (after before : Subst) : Subst :=
+  let updated := before.bindings.map fun (v, c) ↦ (v, after.apply c)
+  let extra := after.bindings.filter fun (v, _) ↦ (before.lookup v).isNone
+  { bindings := updated ++ extra }
+
 end Subst
 
 private def andCat : Cat :=
@@ -40,3 +46,9 @@ private def andCat : Cat :=
 
 -- X0 への代入は X1 に影響しない
 #guard (Subst.single 0 .NP).apply (.Var 1) == .Var 1
+
+#guard
+  let first  := Subst.single 0 (.Var 1) -- X0 ↦ X1
+  let second := Subst.single 1 .NP      -- X1 ↦ NP
+  let σ := second.compose first
+  σ.apply (.Var 0) == .NP && σ.apply (.Var 1) == .NP
