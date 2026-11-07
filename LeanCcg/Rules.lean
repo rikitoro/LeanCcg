@@ -1,10 +1,24 @@
-import LeanCcg.Category
+import LeanCcg.Unify
 
 /- # CCGの組合せ規則 (BinaryRule, UnaryRule) -/
 
 /- ## 組合せ規則の適用 -/
 
+/-- 規則適用で得た範疇と入力の範疇に関する置換 -/
+structure RuleResult where
+  cat   : Cat
+  subst : Subst
+
+
 -- ### Binary Rules
+
+
+/-- 順関数適用 [>] : 左辺の引数範疇と右辺の範疇を単一化する -/
+def fappWithSubst : Cat → Cat → Option RuleResult
+  | .Fun .Fwd result arg, right => do
+    let σ ← unifyMany [(arg, right)]
+    return { cat := σ.apply result, subst := σ }
+  | _, _ => none
 
 /-- Forward functional application
   [>] x/y y ⟹ x -/
@@ -127,3 +141,30 @@ def BinaryRule.applyBinary : BinaryRule → Cat → Cat → Option Cat
 def UnaryRule.applyUnary : UnaryRule → Cat → Option Cat
   | .Ft => fraise
   | .Bt => braise
+
+
+----
+
+private def testAndCat : Cat :=
+  let x := Cat.Var 0
+  x \> x /> x
+
+-- and apples : X が NP に決まる
+#guard (fappWithSubst testAndCat .NP).any fun r ↦
+  r.cat == .NP \> .NP && r.subst.apply (.Var 0) == .NP
+
+-- 右辺が動詞句 S\NP の場合 : X は S\NP に決まる
+#guard
+  let vp : Cat := .S \> .NP
+  (fappWithSubst testAndCat vp).any fun r ↦
+    r.cat == (vp \> vp) && r.subst.apply (.Var 0) == vp
+
+-- 右辺に変数が来た場合
+#guard (fappWithSubst (.S /> .NP) (.Var 1)).any fun r ↦
+  r.cat == .S && r.subst.apply (.Var 1) == .NP
+
+-- 引数の不一致
+#guard (fappWithSubst (.S /> .NP) .N).isNone
+
+-- スラッシュの向きの違い
+#guard (fappWithSubst (.S \> .NP) .NP).isNone
