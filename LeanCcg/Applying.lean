@@ -18,7 +18,7 @@ def tryUnaryRules (c : Cat) : List (UnaryRule × Cat) :=
 def combineTree (lt rt : Tree) : List Tree :=
   let offset := lt.nextVarId
   let right := rt.renameVars (fun v ↦ v + offset)
-  let applied := tryBinaryRulesWithSubst lt.cat rt.cat
+  let applied := tryBinaryRulesWithSubst lt.cat right.cat
   applied.map fun (r, result) ↦
     .branch r result.cat
       (lt.applySubst result.subst)

@@ -84,5 +84,34 @@ private def scopeLexicon : Lexicon := {
 }
 
 -- 同じ語を2回使うときはそれぞれの変数を独立に扱う
+#guard (parse scopeLexicon "id id").any fun
+  | .branch .Fa (.Fun .Fwd (.Var v) (.Var w)) (.leaf _ lc) (.leaf _ rc) =>
+    let c : Cat := .Var v /> .Var w
+    v == w && lc == (c /> c) && rc == c
+  | _ => false
 
-#eval (parse scopeLexicon "id id")
+#eval parse scopeLexicon "id id"
+
+-- 後から決まった置換が、それまでに作った枝と葉にも届く。
+#guard (parse scopeLexicon "id id apples").any fun
+  | .branch .Fa .NP
+      (.branch .Fa c (.leaf _ lc) (.leaf _ rc)) (.leaf _ .NP) =>
+    let idCat : Cat := .NP /> .NP
+    c == idCat && lc == (idCat /> idCat) && rc == idCat
+  | _ => false
+
+#eval parse scopeLexicon "id id apples"
+
+-- 根に現れない変数も、型繰り上げの子まで調べて衝突を避ける。
+#guard (parse scopeLexicon "discard id slot").any fun
+  | .branch .Fa .S
+      (.unary .Ft _
+        (.branch .Fa .NP _ (.leaf _ (.Fun .Fwd (.Var v) (.Var w)))))
+      (.leaf _ rc) =>
+    v == w && rc == (.S \> .NP)
+  | _ => false
+
+#eval parse scopeLexicon "discard id slot"
+
+-- 同じ変数を含む引数範疇の矛盾を検出する。
+#guard (parse scopeLexicon "same bad").isEmpty
