@@ -23,6 +23,20 @@ def Cat.occurs (v : VarId) : Cat → Bool
   | .Fun _ x y  => Cat.occurs v x || Cat.occurs v y
   | _           => false
 
+/-- 範疇内の変数IDを振りなおす -/
+def Cat.renameVars (rename : VarId → VarId) : Cat → Cat
+  | .Var v      => .Var (rename v)
+  | .Fun d x y  => .Fun d (renameVars rename x) (renameVars rename y)
+  | c           => c
+
+/-- 範疇内の全変数ID より大きな値を返す -/
+def Cat.nextVarId : Cat → VarId
+  | .Var v      => v + 1
+  | .Fun _ x y  => max x.nextVarId y.nextVarId
+  | _           => 0
+
+
+
 
 /-- 関数型範疇の記法 -/
 infixl:70 " /> "   => Cat.Fun Dir.Fwd -- x/y を x /> y で表記

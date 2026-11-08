@@ -138,6 +138,15 @@ def BinaryRule.applyBinary : BinaryRule → Cat → Cat → Option Cat
   | .Fx => fcross
   | .Bx => bcross
 
+/-- 順関数適用は単一化、他の規則の結果には空置換を付ける -/
+def BinaryRule.applyBinaryWithSubst
+  (r : BinaryRule) (lc rc : Cat) : Option RuleResult :=
+  match r with
+  | .Fa => fappWithSubst lc rc
+  | _ => (r.applyBinary lc rc).map fun c ↦
+    { cat := c, subst := Subst.empty }
+
+
 def UnaryRule.applyUnary : UnaryRule → Cat → Option Cat
   | .Ft => fraise
   | .Bt => braise
