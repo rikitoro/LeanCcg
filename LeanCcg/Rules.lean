@@ -20,6 +20,13 @@ def fappWithSubst : Cat → Cat → Option RuleResult
     return { cat := σ.apply result, subst := σ }
   | _, _ => none
 
+/-- 逆向き関数適用 [<] : 右辺の引数範疇と左辺の範疇を単一化する -/
+def bappWithSubst : Cat → Cat → Option RuleResult
+  | left, .Fun .Bwd result arg => do
+    let σ ← unifyMany [(arg, left)]
+    return { cat := σ.apply result, subst := σ }
+  | _, _ => none
+
 /-- Forward functional application
   [>] x/y y ⟹ x -/
 def fapp : Cat → Cat → Option Cat
@@ -177,3 +184,26 @@ private def testAndCat : Cat :=
 
 -- スラッシュの向きの違い
 #guard (fappWithSubst (.S \> .NP) .NP).isNone
+
+-- 逆向き関数適用 : 右辺の X\X の X が NP に決まる
+#guard (bappWithSubst .NP (.Var 0 \> .Var 0)).any fun r ↦
+  r.cat == .NP && r.subst.apply (.Var 0) == .NP
+
+-- 関数型の範疇も引数にできる
+#guard
+  let vp : Cat := .S \> .NP
+  (bappWithSubst vp (.Var 1 \> .Var 1)).any fun r ↦
+    r.cat == vp && r.subst.apply (.Var 1) == vp
+
+-- 左辺の変数も右辺の関数が要求する引数範疇に具体化する
+#guard (bappWithSubst (.Var 1) (.S \> .NP)).any fun r ↦
+  r.cat == .S && r.subst.apply (.Var 1) == .NP
+
+-- 引数の不一致
+#guard (bappWithSubst .N (.S \> .NP)).isNone
+
+-- スラッシュの向きの違い
+#guard (bappWithSubst .NP (.S /> .NP)).isNone
+
+-- 循環する制約 X0 = X0/S は拒否
+#guard (bappWithSubst (.Var 0) (.NP \> (.Var 0 /> .S))).isNone
