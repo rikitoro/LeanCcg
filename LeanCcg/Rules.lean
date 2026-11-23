@@ -20,7 +20,7 @@ def fappWithSubst : Cat → Cat → Option RuleResult
     return { cat := σ.apply result, subst := σ }
   | _, _ => none
 
-/-- 逆向き関数適用 [<] : 右辺の引数範疇と左辺の範疇を単一化する -/
+/-- 後ろ向き関数適用 [<] : 右辺の引数範疇と左辺の範疇を単一化する -/
 def bappWithSubst : Cat → Cat → Option RuleResult
   | left, .Fun .Bwd result arg => do
     let σ ← unifyMany [(arg, left)]
@@ -62,6 +62,28 @@ def bcompGen : Cat → Cat → Option Cat
       | some x' => some (x' \> z)
       | none => none
   | _, _ => none
+
+/-- 一般化前向き関数合成 [>B] 浅い段から単一化を試し、最初の成功を返す -/
+def fcompGenWithSubst : Cat → Cat → Option RuleResult
+  | .Fun .Fwd x y, .Fun .Fwd y' z =>
+    match unifyMany [(y, y')] with
+    | some σ => some { cat := σ.apply (x /> z), subst := σ }
+    | none => do
+      let r ← fcompGenWithSubst (x /> y) y'
+      -- 内側の合成で決まった置換を外側に残る引数にも適用する
+      return { cat := r.cat /> r.subst.apply z, subst := r.subst }
+  | _, _ => none
+
+/-- 一般化後ろ向き関数合成 [<B] -/
+def bcompGenWithSubst : Cat → Cat → Option RuleResult
+  | .Fun .Bwd y' z, .Fun .Bwd x y =>
+    match unifyMany [(y, y')] with
+    | some σ => some { cat := σ.apply (x \> z), subst := σ}
+    | none => do
+      let r ← bcompGenWithSubst y' (x \> y)
+      return { cat := r.cat \> r.subst.apply z, subst := r.subst }
+  | _, _ => none
+
 
 /-- Forward crossed substitution
   [>Sx] x/y\z y\z ⟹ x\z -/
@@ -213,3 +235,11 @@ private def testAndCat : Cat :=
 -- パーサが使う規則振り分けでも Ba の単一化を行う
 #guard (BinaryRule.Ba.applyBinaryWithSubst .NP (.Var 0 \> .Var 0)).any fun r ↦
   r.cat == .NP && r.subst.apply (.Var 0) == .NP
+
+/- # 一般化関数合成の単一化 -/
+
+-- 変数を含まない通常の関数合成
+#guard (fcompGenWithSubst (.S /> .NP) (.NP /> .N)).any fun r ↦
+  r.cat == .S /> .N
+#guard (bcompGenWithSubst (.NP \> .N) (.S \> .NP)).any fun r ↦
+  r.cat == .S \> .N

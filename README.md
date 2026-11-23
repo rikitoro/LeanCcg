@@ -117,17 +117,15 @@ def coordLexicon : Lexicon := {
 | `LeanCcg/Applying.lean` | 規則による木の結合と型繰り上げ |
 | `LeanCcg/Parsing.lean` | 辞書・チャート解析・`parse` |
 | `LeanCcg/Utility.lean` | トークン分割などの補助処理 |
-| `LeanCcg/Examples.lean` | 解析例と回帰テスト |
+| `Example.lean` | 解析例と回帰テスト |
 
 ## テスト
 
 `#guard` により、置換の適用・合成、単一化の成功・失敗、循環検出、変数スコープの分離、導出木全体への置換の反映を確認する。
 
 ```bash
-lake build LeanCcg LeanCcg.Examples
+lake build LeanCcg Example
 ```
-
-`lake build` のみでは `Examples.lean` は対象にならないため、回帰テストを含める場合は上記のように明示する。
 
 ## 現在の範囲
 
