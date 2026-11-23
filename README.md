@@ -101,7 +101,8 @@ def coordLexicon : Lexicon := {
 | `Ft` | `[>T]` | 前向き型繰り上げ |
 | `Bt` | `[<T]` | 後向き型繰り上げ |
 
-現在、パーサーで単一化を行う規則は `Fa` のみである。他の二項規則は、対応する範疇の完全一致を用いる。型繰り上げは `NP` から `S/(S\NP)` または `S\(S/NP)` への変換に限定している。
+現在、パーサーで単一化を行う規則は Fa と Ba である。`BinaryRule.applyBinaryWithSubst` から、それぞれ fappWithSubst と bappWithSubst を呼び出す。
+他の二項規則は、対応する範疇の完全一致を用いる。型繰り上げは NP から S/(S\NP) または S\(S/NP) への変換に限定している。
 
 ## ファイル構成
 

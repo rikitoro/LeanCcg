@@ -150,6 +150,7 @@ def BinaryRule.applyBinaryWithSubst
   (r : BinaryRule) (lc rc : Cat) : Option RuleResult :=
   match r with
   | .Fa => fappWithSubst lc rc
+  | .Ba => bappWithSubst lc rc
   | _ => (r.applyBinary lc rc).map fun c ↦
     { cat := c, subst := Subst.empty }
 
@@ -185,7 +186,9 @@ private def testAndCat : Cat :=
 -- スラッシュの向きの違い
 #guard (fappWithSubst (.S \> .NP) .NP).isNone
 
--- 逆向き関数適用 : 右辺の X\X の X が NP に決まる
+/- # 後ろ向き関数適用の単一化 -/
+
+-- 後ろ向き関数適用 : 右辺の X\X の X が NP に決まる
 #guard (bappWithSubst .NP (.Var 0 \> .Var 0)).any fun r ↦
   r.cat == .NP && r.subst.apply (.Var 0) == .NP
 
@@ -199,11 +202,14 @@ private def testAndCat : Cat :=
 #guard (bappWithSubst (.Var 1) (.S \> .NP)).any fun r ↦
   r.cat == .S && r.subst.apply (.Var 1) == .NP
 
--- 引数の不一致
+-- 引数の不一致、スラッシュの向きの違いは拒否
 #guard (bappWithSubst .N (.S \> .NP)).isNone
-
--- スラッシュの向きの違い
 #guard (bappWithSubst .NP (.S /> .NP)).isNone
 
--- 循環する制約 X0 = X0/S は拒否
+-- 同じ変数へ矛盾した制約、循環する制約は拒否
+#guard (bappWithSubst (.NP /> .S) (.S \> (.Var 0 /> .Var 0))).isNone
 #guard (bappWithSubst (.Var 0) (.NP \> (.Var 0 /> .S))).isNone
+
+-- パーサが使う規則振り分けでも Ba の単一化を行う
+#guard (BinaryRule.Ba.applyBinaryWithSubst .NP (.Var 0 \> .Var 0)).any fun r ↦
+  r.cat == .NP && r.subst.apply (.Var 0) == .NP
