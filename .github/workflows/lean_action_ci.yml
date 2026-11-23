@@ -11,6 +11,12 @@ jobs:
 
     steps:
       - uses: actions/checkout@v5
-      - uses: leanprover/lean-action@v1
+
+      - name: Build Lean library
+        uses: leanprover/lean-action@v1
         with:
-          build-args: "LeanCcg LeanCcg.Examples"
+          build-args: "LeanCcg"
+
+      - name: Check examples 
+        run: lake env lean Example.lean
+        
