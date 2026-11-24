@@ -74,7 +74,7 @@ def fcompGenWithSubst : Cat → Cat → Option RuleResult
       return { cat := r.cat /> r.subst.apply z, subst := r.subst }
   | _, _ => none
 
-/-- 一般化後ろ向き関数合成 [<B] -/
+/-- 一般化後向き関数合成 [<B] -/
 def bcompGenWithSubst : Cat → Cat → Option RuleResult
   | .Fun .Bwd y' z, .Fun .Bwd x y =>
     match unifyMany [(y, y')] with
@@ -103,6 +103,20 @@ def bcross : Cat → Cat → Option Cat
       some (x /> z)
     else
       none
+  | _, _ => none
+
+/-- 前向き交差置換 [>Sx] -/
+def fcrossWithSubst : Cat → Cat → Option RuleResult
+  | .Fun .Bwd (.Fun .Fwd x y) z, .Fun .Bwd y' z' => do
+    let σ ← unifyMany [(y, y'), (z, z')]
+    return { cat := σ.apply (x \> z), subst := σ }
+  | _, _ => none
+
+/-- 後向き交差置換 [<Sx] -/
+def bcrossWithSubst : Cat → Cat → Option RuleResult
+  | .Fun .Fwd y' z', .Fun .Fwd (.Fun .Bwd x y) z => do
+    let σ ← unifyMany [(y, y'), (z, z')]
+    return { cat := σ.apply (x /> z), subst := σ }
   | _, _ => none
 
 -- ### Unary Rules
@@ -167,7 +181,7 @@ def BinaryRule.applyBinary : BinaryRule → Cat → Cat → Option Cat
   | .Fx => fcross
   | .Bx => bcross
 
-/-- 順関数適用は単一化、他の規則の結果には空置換を付ける -/
+/-- すべての二項規則で単一化を行い、範疇と置換を返す -/
 def BinaryRule.applyBinaryWithSubst
   (r : BinaryRule) (lc rc : Cat) : Option RuleResult :=
   match r with
@@ -175,8 +189,8 @@ def BinaryRule.applyBinaryWithSubst
   | .Ba => bappWithSubst lc rc
   | .Fc => fcompGenWithSubst lc rc
   | .Bc => bcompGenWithSubst lc rc
-  | _ => (r.applyBinary lc rc).map fun c ↦
-    { cat := c, subst := Subst.empty }
+  | .Fx => fcrossWithSubst lc rc
+  | .Bx => bcrossWithSubst lc rc
 
 
 def UnaryRule.applyUnary : UnaryRule → Cat → Option Cat
@@ -285,3 +299,51 @@ private def testAndCat : Cat :=
   r.cat == (.S /> .NP) && r.subst.apply (.Var 0) == (.NP /> .N)
 #guard (bcompGenWithSubst (.NP \> .N \> .NP) (.S \> .Var 0)).any fun r ↦
   r.cat == (.S \> .NP) && r.subst.apply (.Var 0) == (.NP \> .N)
+
+/- # 交差置換の単一化 -/
+
+-- 変数を含まない交差置換。
+#guard (fcrossWithSubst (.S /> .NP \> .N) (.NP \> .N)).any fun r ↦
+  r.cat == .S \> .N
+#guard (bcrossWithSubst (.NP /> .N) (.S \> .NP /> .N)).any fun r ↦
+  r.cat == .S /> .N
+
+-- 結果と共有する引数に現れる変数を、同じ置換で具体化する。
+#guard (fcrossWithSubst (.Var 0 /> .Var 0 \> .Var 0)
+    (.NP \> .NP)).any fun r ↦
+  r.cat == .NP \> .NP && r.subst.apply (.Var 0) == .NP
+#guard (bcrossWithSubst (.NP /> .NP)
+    (.Var 0 \> .Var 0 /> .Var 0)).any fun r ↦
+  r.cat == .NP /> .NP && r.subst.apply (.Var 0) == .NP
+
+-- 2つ目の制約で決まった NP を、最初に関連付けた変数にも反映する。
+#guard (fcrossWithSubst (.Var 0 /> .Var 0 \> .Var 0)
+    (.Var 1 \> .NP)).any fun r ↦
+  r.cat == .NP \> .NP &&
+    r.subst.apply (.Var 0) == .NP && r.subst.apply (.Var 1) == .NP
+#guard (bcrossWithSubst (.Var 1 /> .NP)
+    (.Var 0 \> .Var 0 /> .Var 0)).any fun r ↦
+  r.cat == .NP /> .NP &&
+    r.subst.apply (.Var 0) == .NP && r.subst.apply (.Var 1) == .NP
+
+-- 各制約は単独では解けても、X = NP と X = S を同時には満たせない。
+#guard (fcrossWithSubst (.S /> .Var 0 \> .Var 0) (.NP \> .S)).isNone
+#guard (bcrossWithSubst (.NP /> .S) (.S \> .Var 0 /> .Var 0)).isNone
+
+-- X0 = X1 と X0 = X1/NP を合わせたときに生じる循環を拒否する。
+#guard (fcrossWithSubst (.S /> .Var 0 \> .Var 0)
+    (.Var 1 \> (.Var 1 /> .NP))).isNone
+#guard (bcrossWithSubst (.Var 1 /> (.Var 1 /> .NP))
+    (.S \> .Var 0 /> .Var 0)).isNone
+
+-- Y の不一致と、共有する引数 Z の不一致はそれぞれ拒否する。
+#guard (fcrossWithSubst (.S /> .NP \> .N) (.S \> .N)).isNone
+#guard (bcrossWithSubst (.S /> .N) (.S \> .NP /> .N)).isNone
+#guard (fcrossWithSubst (.S /> .NP \> .NP) (.NP \> .N)).isNone
+#guard (bcrossWithSubst (.NP /> .N) (.S \> .NP /> .NP)).isNone
+
+-- 内側または外側のスラッシュの向きが規則に合わない場合は拒否する。
+#guard (fcrossWithSubst (.S \> .NP \> .N) (.NP \> .N)).isNone
+#guard (bcrossWithSubst (.NP /> .N) (.S /> .NP /> .N)).isNone
+#guard (fcrossWithSubst (.S /> .NP /> .N) (.NP \> .N)).isNone
+#guard (bcrossWithSubst (.NP \> .N) (.S \> .NP /> .N)).isNone

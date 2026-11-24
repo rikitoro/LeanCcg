@@ -102,13 +102,24 @@ def coordLexicon : Lexicon := {
 | `Ft` | `[>T]` | 前向き型繰り上げ |
 | `Bt` | `[<T]` | 後向き型繰り上げ |
 
-現在、パーサーで単一化を行う規則は `Fa`・`Ba`・`Fc`・`Bc` である。`BinaryRule.applyBinaryWithSubst` から、それぞれ `fappWithSubst`・`bappWithSubst`・`fcompGenWithSubst`・`bcompGenWithSubst` を呼び出す。
+現在、パーサーで使う6種類の二項規則 `Fa`・`Ba`・`Fc`・`Bc`・`Fx`・`Bx` は全て単一化に対応する。`BinaryRule.applyBinaryWithSubst` から、それぞれ `fappWithSubst`・`bappWithSubst`・`fcompGenWithSubst`・`bcompGenWithSubst`・`fcrossWithSubst`・`bcrossWithSubst` を呼び出す。
 
 `Fc` では右側、`Bc` では左側の関数範疇を、同じ向きのスラッシュに沿って内側へ探索する。浅い段から単一化を試し、最初に成功した合成を返す。内側で得た置換は、外側に残る引数にも反映する。例えば、`S/NP` と `(X/N)/X` は `X = NP` として合成され、結果は `(S/N)/NP` となる。
 
 変数を含む場合、複数の段で合成が可能なことがある。現在の返り値は `Option RuleResult` であり、異なる段の合成候補をすべて列挙する実装ではない。
 
-`Fx`・`Bx` は、対応する範疇の完全一致を用いる。型繰り上げは `NP` から `S/(S\NP)` または `S\(S/NP)` への変換に限定している。
+交差置換 `Fx`・`Bx` では、次の形の範疇を組み合わせる。
+
+| 規則 | 左側 | 右側 | 結果 |
+| --- | --- | --- | --- |
+| `Fx` `[>Sx]` | `(X/Y)\Z` | `Y′\Z′` | `σ(X\Z)` |
+| `Bx` `[<Sx]` | `Y′/Z′` | `(X\Y)/Z` | `σ(X/Z)` |
+
+`Y = Y′` と `Z = Z′` の2つの制約を、一度の `unifyMany` で解いて置換 `σ` を得る。これにより、両条件にまたがる変数の共有、矛盾、循環を扱う。得られた置換は結果の範疇と左右の導出木全体に反映する。
+
+例えば `(S/X)\X` と `NP\S` の `Fx` は、`X = NP` と `X = S` を同時に要求するため失敗する。各制約を別々に解くだけでは、この矛盾を見落とす。
+
+型繰り上げは `NP` から `S/(S\NP)` または `S\(S/NP)` への変換に限定している。
 
 ## ファイル構成
 

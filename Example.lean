@@ -172,3 +172,56 @@ private def compositionLexicon : Lexicon := {
       (.branch .Bc c (.leaf _ lc) (.leaf _ rc)) =>
     c == (.S \> .NP) && lc == (.S \> .NP) && rc == (.S \> .S)
   | _ => false
+
+
+/- # 交差置換による単一化と置換の伝播 -/
+
+-- 交差置換規則を確認するための例示用の辞書。
+private def crossLexicon : Lexicon := {
+  ("fx",      [(.Var 0 /> .Var 0) \> .Var 1]),
+  ("fxarg",   [.NP \> .N]),
+  ("bxarg",   [.NP /> .N]),
+  ("bx",      [(.Var 0 \> .Var 0) /> .Var 1]),
+  ("fscoped", [.NP \> .Var 0]),
+  ("bscoped", [.NP /> .Var 0]),
+  ("fvar",    [(.S /> .NP) \> .Var 0]),
+  ("gvar",    [.NP \> .Var 0]),
+  ("bgvar",   [.NP /> .Var 0]),
+  ("bvar",    [(.S \> .NP) /> .Var 0]),
+  ("apples",  [.NP])}
+
+-- Fx の単一化が、結果だけでなく左側の葉全体にも反映される。
+#guard (parse crossLexicon "fx fxarg").any fun
+  | .branch .Fx c (.leaf _ lc) (.leaf _ rc) =>
+    c == (.NP \> .N) && lc == ((.NP /> .NP) \> .N) && rc == (.NP \> .N)
+  | _ => false
+
+-- Bx の単一化が右側の葉全体にも反映される。
+#guard (parse crossLexicon "bxarg bx").any fun
+  | .branch .Bx c (.leaf _ lc) (.leaf _ rc) =>
+    c == (.NP /> .N) && lc == (.NP /> .N) && rc == ((.NP \> .NP) /> .N)
+  | _ => false
+
+-- 別の語の X0 は独立なので、共有する引数はまだ変数として残る。
+#guard (parse crossLexicon "fx fscoped").any fun
+  | .branch .Fx (.Fun .Bwd .NP (.Var v)) (.leaf _ lc) (.leaf _ rc) =>
+    lc == ((.NP /> .NP) \> .Var v) && rc == (.NP \> .Var v)
+  | _ => false
+#guard (parse crossLexicon "bscoped bx").any fun
+  | .branch .Bx (.Fun .Fwd .NP (.Var v)) (.leaf _ lc) (.leaf _ rc) =>
+    lc == (.NP /> .Var v) && rc == ((.NP \> .NP) /> .Var v)
+  | _ => false
+
+-- 後の Ba で決まった共有引数の範疇を、Fx の枝と両方の葉に反映する。
+#guard (parse crossLexicon "apples fvar gvar").any fun
+  | .branch .Ba .S (.leaf _ .NP)
+      (.branch .Fx c (.leaf _ lc) (.leaf _ rc)) =>
+    c == (.S \> .NP) && lc == ((.S /> .NP) \> .NP) && rc == (.NP \> .NP)
+  | _ => false
+
+-- 後の Fa で決まった共有引数の範疇を、Bx の枝と両方の葉に反映する。
+#guard (parse crossLexicon "bgvar bvar apples").any fun
+  | .branch .Fa .S
+      (.branch .Bx c (.leaf _ lc) (.leaf _ rc)) (.leaf _ .NP) =>
+    c == (.S /> .NP) && lc == (.NP /> .NP) && rc == ((.S \> .NP) /> .NP)
+  | _ => false
