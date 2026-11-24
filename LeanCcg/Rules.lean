@@ -173,6 +173,8 @@ def BinaryRule.applyBinaryWithSubst
   match r with
   | .Fa => fappWithSubst lc rc
   | .Ba => bappWithSubst lc rc
+  | .Fc => fcompGenWithSubst lc rc
+  | .Bc => bcompGenWithSubst lc rc
   | _ => (r.applyBinary lc rc).map fun c ↦
     { cat := c, subst := Subst.empty }
 

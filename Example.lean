@@ -115,3 +115,60 @@ private def scopeLexicon : Lexicon := {
 
 -- 同じ変数を含む引数範疇の矛盾を検出する。
 #guard (parse scopeLexicon "same bad").isEmpty
+
+
+/- # 一般化関数合成による単一化と置換の伝播 -/
+
+-- 合成規則を確認するための例示用の辞書。
+private def compositionLexicon : Lexicon := {
+  ("fid",     [.Var 0 /> .Var 0]),
+  ("farg",    [.NP /> .N]),
+  ("fselect", [.S /> .NP]),
+  ("fhigher", [(.Var 0 /> .N) /> .Var 0]),
+  ("fvar",    [.S /> .Var 0]),
+  ("bid",     [.Var 0 \> .Var 0]),
+  ("barg",    [.NP \> .N]),
+  ("bselect", [.S \> .NP]),
+  ("bhigher", [(.Var 0 \> .N) \> .Var 0]),
+  ("bvar",    [.S \> .Var 0]),
+  ("apples",  [.NP])}
+
+-- Fc の単一化が左側の葉にも反映される。
+#guard (parse compositionLexicon "fid farg").any fun
+  | .branch .Fc c (.leaf _ lc) (.leaf _ rc) =>
+    c == (.NP /> .N) && lc == (.NP /> .NP) && rc == (.NP /> .N)
+  | _ => false
+
+-- Bc の単一化が右側の葉にも反映される。
+#guard (parse compositionLexicon "barg bid").any fun
+  | .branch .Bc c (.leaf _ lc) (.leaf _ rc) =>
+    c == (.NP \> .N) && lc == (.NP \> .N) && rc == (.NP \> .NP)
+  | _ => false
+
+-- 2段の Fc で決まった置換を、結果と右側の葉全体に反映する。
+#guard (parse compositionLexicon "fselect fhigher").any fun
+  | .branch .Fc c (.leaf _ lc) (.leaf _ rc) =>
+    c == ((.S /> .N) /> .NP) && lc == (.S /> .NP) &&
+      rc == ((.NP /> .N) /> .NP)
+  | _ => false
+
+-- 2段の Bc で決まった置換を、結果と左側の葉全体に反映する。
+#guard (parse compositionLexicon "bhigher bselect").any fun
+  | .branch .Bc c (.leaf _ lc) (.leaf _ rc) =>
+    c == ((.S \> .N) \> .NP) && lc == ((.NP \> .N) \> .NP) &&
+      rc == (.S \> .NP)
+  | _ => false
+
+-- 別の語の X0 は独立であり、後の Fa の置換が Fc の枝と葉に届く。
+#guard (parse compositionLexicon "fid fvar apples").any fun
+  | .branch .Fa .S
+      (.branch .Fc c (.leaf _ lc) (.leaf _ rc)) (.leaf _ .NP) =>
+    c == (.S /> .NP) && lc == (.S /> .S) && rc == (.S /> .NP)
+  | _ => false
+
+-- 別の語の X0 は独立であり、後の Ba の置換が Bc の枝と葉に届く。
+#guard (parse compositionLexicon "apples bvar bid").any fun
+  | .branch .Ba .S (.leaf _ .NP)
+      (.branch .Bc c (.leaf _ lc) (.leaf _ rc)) =>
+    c == (.S \> .NP) && lc == (.S \> .NP) && rc == (.S \> .S)
+  | _ => false
