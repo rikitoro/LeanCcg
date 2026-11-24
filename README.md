@@ -15,14 +15,15 @@ Lean 4.35.0を使用する。バージョンは `lean-toolchain` で指定して
 ```bash
 git clone https://github.com/rikitoro/LeanCcg.git
 cd LeanCcg
-lake build LeanCcg LeanCcg.Examples
+lake build LeanCcg
+lake env lean Example.lean
 ```
 
-ライブラリと実行例をビルドし、各ファイルの `#guard` を評価する。GitHub Actionsでも同じ対象をビルドする。
+ライブラリをビルドした後、実行例を読み込み、各ファイルの `#guard` を評価する。GitHub Actionsでも同じ手順で確認する。
 
 ## 使い方
 
-プロジェクト直下に `Example.lean` を作成し、次のコードを記述する。
+プロジェクト直下に `TryParse.lean` を作成し、次のコードを記述する。既存の `Example.lean` には解析例と回帰テストを置く。
 
 ```lean
 import LeanCcg
@@ -44,7 +45,7 @@ def exampleLexicon : Lexicon := {
 VS Code上で評価するか、以下を実行する。
 
 ```bash
-lake env lean Example.lean
+lake env lean TryParse.lean
 ```
 
 `parse` は空白区切りの文字列を受け取り、入力全体を覆う導出木を `List Tree` として返す。返す木の根を `S` に限定しないため、必要に応じて `Tree.cat` で絞り込む。解析結果がなければ空リストを返す。
@@ -101,8 +102,13 @@ def coordLexicon : Lexicon := {
 | `Ft` | `[>T]` | 前向き型繰り上げ |
 | `Bt` | `[<T]` | 後向き型繰り上げ |
 
-現在、パーサーで単一化を行う規則は Fa と Ba である。`BinaryRule.applyBinaryWithSubst` から、それぞれ fappWithSubst と bappWithSubst を呼び出す。
-他の二項規則は、対応する範疇の完全一致を用いる。型繰り上げは NP から S/(S\NP) または S\(S/NP) への変換に限定している。
+現在、パーサーで単一化を行う規則は `Fa`・`Ba`・`Fc`・`Bc` である。`BinaryRule.applyBinaryWithSubst` から、それぞれ `fappWithSubst`・`bappWithSubst`・`fcompGenWithSubst`・`bcompGenWithSubst` を呼び出す。
+
+`Fc` では右側、`Bc` では左側の関数範疇を、同じ向きのスラッシュに沿って内側へ探索する。浅い段から単一化を試し、最初に成功した合成を返す。内側で得た置換は、外側に残る引数にも反映する。例えば、`S/NP` と `(X/N)/X` は `X = NP` として合成され、結果は `(S/N)/NP` となる。
+
+変数を含む場合、複数の段で合成が可能なことがある。現在の返り値は `Option RuleResult` であり、異なる段の合成候補をすべて列挙する実装ではない。
+
+`Fx`・`Bx` は、対応する範疇の完全一致を用いる。型繰り上げは `NP` から `S/(S\NP)` または `S\(S/NP)` への変換に限定している。
 
 ## ファイル構成
 
@@ -120,12 +126,16 @@ def coordLexicon : Lexicon := {
 | `Example.lean` | 解析例と回帰テスト |
 
 ## テスト
+## テスト
 
-`#guard` により、置換の適用・合成、単一化の成功・失敗、循環検出、変数スコープの分離、導出木全体への置換の反映を確認する。
+`#guard` により、置換の適用・合成、単一化の成功・失敗、循環検出、変数スコープの分離、導出木全体への置換の反映を確認する。一般化関数合成では、複数段の合成で外側の引数に置換が届くことと、後の関数適用で既存の合成部分木に置換が届くことも確認する。
 
 ```bash
-lake build LeanCcg Example
+lake build LeanCcg
+lake env lean Example.lean
 ```
+
+`lake build` のみではプロジェクト直下の `Example.lean` は対象にならないため、回帰テストを含める場合は続けて `lake env lean Example.lean` を実行する。
 
 ## 現在の範囲
 

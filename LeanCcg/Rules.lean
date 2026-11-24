@@ -243,3 +243,43 @@ private def testAndCat : Cat :=
   r.cat == .S /> .N
 #guard (bcompGenWithSubst (.NP \> .N) (.S \> .NP)).any fun r ↦
   r.cat == .S \> .N
+
+-- X/X と X\X の結果側の X にも置換が反映
+#guard (fcompGenWithSubst (.Var 0 /> .Var 0) (.NP /> .N)).any fun r ↦
+  r.cat == .NP /> .N && r.subst.apply (.Var 0) == .NP
+#guard (bcompGenWithSubst (.NP \> .N) (.Var 0 \> .Var 0)).any fun r ↦
+  r.cat == .NP \> .N && r.subst.apply (.Var 0) == .NP
+
+-- 合成後に残る引数に含まれる変数にも置換を適用
+#guard (fcompGenWithSubst (.S /> .NP) (.Var 0 /> .Var 0)).any fun r ↦
+  r.cat == .S /> .NP && r.subst.apply (.Var 0) == .NP
+#guard (bcompGenWithSubst (.Var 0 \> .Var 0) (.S \> .NP)).any fun r ↦
+  r.cat == .S \> .NP && r.subst.apply (.Var 0) == .NP
+
+-- 2段の合成。内側で決まった X = NP が外側の引数にも届く
+#guard (fcompGenWithSubst (.S /> .NP) (.Var 0 /> .N /> .Var 0)).any fun r ↦
+  r.cat == .S /> .N /> .NP && r.subst.apply (.Var 0) == .NP
+#guard (bcompGenWithSubst (.Var 0 \> .N \> .Var 0) (.S \> .NP)).any fun r ↦
+  r.cat == .S \> .N \> .NP && r.subst.apply (.Var 0) == .NP
+
+-- スラッシュの向きや引数範疇が合わない場合は拒否
+#guard (fcompGenWithSubst (.S /> .NP) (.NP \> .N)).isNone
+#guard (bcompGenWithSubst (.NP /> .N) (.S \> .NP)).isNone
+#guard (fcompGenWithSubst (.S /> .NP) (.N /> .NP)).isNone
+#guard (bcompGenWithSubst (.N \> .NP) (.S \> .NP)).isNone
+
+-- 同じ変数へ矛盾する制約を与える合成は拒否
+#guard (fcompGenWithSubst (.S /> (.Var 0 /> .Var 0))
+    (.NP /> .S /> .N)).isNone
+#guard (bcompGenWithSubst (.NP \> .S \> .N)
+    (.S \> (.Var 0 \> .Var 0))).isNone
+
+-- 循環する制約を拒否
+#guard (fcompGenWithSubst (.S /> .Var 0) ((.Var 0 \> .NP) /> .N)).isNone
+#guard (bcompGenWithSubst ((.Var 0 /> .NP) \> .N) (.S \> .Var 0)).isNone
+
+-- 複数の段で単一化できる場合は、浅い段の最初の成功を採用
+#guard (fcompGenWithSubst (.S /> .Var 0) (.NP /> .N /> .NP)).any fun r ↦
+  r.cat == (.S /> .NP) && r.subst.apply (.Var 0) == (.NP /> .N)
+#guard (bcompGenWithSubst (.NP \> .N \> .NP) (.S \> .Var 0)).any fun r ↦
+  r.cat == (.S \> .NP) && r.subst.apply (.Var 0) == (.NP \> .N)
